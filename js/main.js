@@ -86,7 +86,7 @@ var tools = {
     },
 
     Toggle  : {
-        'Piano Keys' : function() {
+        'Piano Roll' : function() {
         },
 
         'Extended View' : function() {
@@ -137,10 +137,12 @@ Toolbar.prototype.dropItem = function(nav, text, callback) {
 
 Toolbar.prototype.expandDrop = function(index) {
     if(activeDrop != index) {
-        activeDrop = index;
+        var nav = $('.ui-bar .nav').eq(index);
 
         toolbar.resize();
         toolbar.hideOtherDrops(index);
+
+        activeDrop = index;
 
         var dropdown = $('.ui-dropdowns .nav-drop').eq(index);
 
@@ -160,7 +162,9 @@ Toolbar.prototype.expandDrop = function(index) {
 }
 
 Toolbar.prototype.hideDrop = function(index) {
-    $('.ui-bar .nav').eq(index).removeClass('selected');
+    var nav = $('.ui-bar .nav').eq(index);
+    nav.removeClass('selected');
+
     $('.ui-dropdowns .nav-drop').eq(index).css('opacity', '0');
 
     clearTimeout(this.dropTimers[index]);
@@ -186,6 +190,7 @@ Toolbar.prototype.resize = function() {
 }
 
 function generateUI() {
+    // Building toolbar
     toolbar = new Toolbar($('.ui-bar'), $('.ui-dropdowns'));
 
     for(var key in tools) {
@@ -196,6 +201,28 @@ function generateUI() {
             toolbar.dropItem(prop, subKey, tools[key][subKey]);
         }
     }
+
+    // Building music roll
+    var span = 60;
+    var range = 100;
+
+    var musicBox = $('.music');
+
+    /*
+    for(var y = 0 ; y < span ; y++) {
+        for(var x = 0 ; x < range ; x++) {
+            musicBox.append(
+                $('<div/>', {
+                    class : 'note',
+                    css   : {
+                        top  : y*30,
+                        left : x*30
+                    }
+                })
+            );
+        }
+    }
+    */
 }
 
 // ---------------------------------------

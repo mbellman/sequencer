@@ -62,6 +62,12 @@ main .sequencer .content .ui-bar .nav {
     text-shadow: 0 1px #8AF;
     line-height: 35px;
     cursor: pointer;
+
+    -ms-transition: background-color 0.05s, color 0.05s;
+    -o-transition: background-color 0.05s, color 0.05s;
+    -moz-transition: background-color 0.05s, color 0.05s;
+    -webkit-transition: background-color 0.05s, color 0.05s;
+    transition: background-color 0.05s, color 0.05s;
 }
 
 main .sequencer .content .ui-bar .nav:not(.selected):hover {
@@ -73,7 +79,7 @@ main .sequencer .content .ui-bar .nav.selected {
     background-color: rgba(255, 255, 255, 0.85);
     box-shadow: 0px 0px 5px 0px #9DE;
     color: #4DF;
-    text-shadow: none;
+    text-shadow: 0 1px rgba(255, 255, 255, 0.85);
 }
 
 main .sequencer .content .ui-dropdowns {
@@ -131,4 +137,21 @@ main .sequencer .content .ui-dropdowns .nav-drop .break {
     border: 0;
     border-top: 1px solid #CFF;
     margin: 2px 0 2px -1px;
+}
+
+main .sequencer .content .music {
+    position: absolute;
+    top: 35px;
+    left: 0;
+    width: 30000px;
+    height: 1800px;
+    background: url(../images/note-tile.png) top left repeat;
+    background-size: 30px 30px;
+}
+
+main .sequencer .content .music .note {
+    position: absolute;
+    width: 29px;
+    height: 29px;
+    border: 1px solid #DEE;
 }
