@@ -1,0 +1,134 @@
+html, body {
+    margin: 0;
+}
+
+body {
+    background: #0DF;
+}
+
+img {
+    border: 0;
+}
+
+.load {
+
+}
+
+main {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+}
+
+main .sequencer {
+    position: absolute;
+    top: 5%;
+    left: 5%;
+    right: 5%;
+    bottom: 5%;
+    background: #FFF;
+    box-shadow: 0 0 3px 3px #0CE;
+}
+
+main .sequencer .content {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    right: 3px;
+    bottom: 3px;
+    border: 3px solid #0CE;
+    overflow: hidden;
+}
+
+main .sequencer .content .ui-bar {
+    position: absolute;
+    height: 35px;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 0 3%;
+    background: #AEF;
+    box-shadow: 0 0 10px 0 #8CD inset;
+}
+
+main .sequencer .content .ui-bar .nav {
+    display: inline-block;
+    position: relative;
+    padding: 0 10px;
+    font-family: Tahoma;
+    font-weight: bold;
+    font-size: 16px;
+    color: #FFF;
+    text-shadow: 0 1px #8AF;
+    line-height: 35px;
+    cursor: pointer;
+}
+
+main .sequencer .content .ui-bar .nav:not(.selected):hover {
+    background-color: rgba(0, 0, 0, 0.03);
+    color: #EFF;
+}
+
+main .sequencer .content .ui-bar .nav.selected {
+    background-color: rgba(255, 255, 255, 0.85);
+    box-shadow: 0px 0px 5px 0px #9DE;
+    color: #4DF;
+    text-shadow: none;
+}
+
+main .sequencer .content .ui-dropdowns {
+    position: absolute;
+    left: 0;
+    right: 0;
+    z-index: 5;
+}
+
+main .sequencer .content .ui-dropdowns .nav-drop {
+    display: none;
+    position: absolute;
+    min-width: 100px;
+    top: 35px;
+    background: #FFF;
+    padding: 0 5px 0 10px;
+    box-shadow: 0 0 5px 0 #CEF;
+
+    -ms-transform-origin: 0% 0%;
+    -o-transform-origin: 0% 0%;
+    -moz-transform-origin: 0% 0%;
+    -webkit-transform-origin: 0% 0%;
+    transform-origin: 0% 0%;
+}
+
+main .sequencer .content .ui-dropdowns .nav-drop.drop-transition {
+    -ms-transition: opacity 0.5s, -ms-transform 0.5s cubic-bezier(0.145, 1.650, 0.390, 0.855);
+    -o-transition: opacity 0.5s, -o-transform 0.5s cubic-bezier(0.145, 1.650, 0.390, 0.855);
+    -moz-transition: opacity 0.5s, -moz-transform 0.5s cubic-bezier(0.145, 1.650, 0.390, 0.855);
+    -webkit-transition: opacity 0.5s, -webkit-transform 0.5s cubic-bezier(0.145, 1.650, 0.390, 0.855);
+    transition: opacity 0.5s, transform 0.5s cubic-bezier(0.145, 1.650, 0.390, 0.855);
+}
+
+main .sequencer .content .ui-dropdowns .nav-drop div {
+    display: block;
+    position: relative;
+    width: 100%;
+}
+
+main .sequencer .content .ui-dropdowns .nav-drop .item {
+    margin-left: -10px;
+    padding: 3px 5px 3px 10px;
+    font-family: Tahoma;
+    font-size: 16px;
+    color: #5DF;
+    cursor: pointer;
+}
+
+main .sequencer .content .ui-dropdowns .nav-drop .item:hover {
+    background-color: #5DF;
+    color: #FFF;
+}
+
+main .sequencer .content .ui-dropdowns .nav-drop .break {
+    border: 0;
+    border-top: 1px solid #CFF;
+    margin: 2px 0 2px -1px;
+}
