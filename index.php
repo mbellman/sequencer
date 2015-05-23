@@ -2,7 +2,7 @@
 <html>
     <head>
         <meta charset="utf-8">
-        <title>Page Title</title>
+        <title>HTML5 Audio Sequencer</title>
         <style type="text/css">
             @import url('css/styles.css');
         </style>

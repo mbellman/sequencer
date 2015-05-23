@@ -7,6 +7,16 @@ var page = {
     height : $(window).height()
 }
 
+var instruments = {
+    1 : 'square',
+    2 : 'sawtooth',
+    3 : 'triangle',
+    4 : 'piano'
+}
+
+var selectedTool = 1;
+var selectedInstrument = 1;
+
 // ---------------------------------------
 // -------------- Handlers ---------------
 function handleResize() {
@@ -51,13 +61,24 @@ var tools = {
         'New' : function() {
         },
 
+        'Save' : function() {
+        },
+
         'Open' : function() {
         },
 
-        'Load' : function() {
-        },
-
         'br' : null,
+        
+        'Play' : function() {
+        },
+        
+        'Pause' : function() {
+        },
+        
+        'Restart' : function() {
+        },
+        
+        'br2' : null,
 
         'Demos' : function() {
         },
@@ -65,12 +86,23 @@ var tools = {
 
     Tools   : {
         'Notate' : function() {
+            selectedTool = 1;
+            toolbar.hideOtherDrops();
         },
 
         'Erase' : function() {
+            selectedTool = 2;
+            toolbar.hideOtherDrops();
         },
 
         'Scroll' : function() {
+            selectedTool = 3;
+            toolbar.hideOtherDrops();
+        },
+        
+        'Select' : function() {
+            selectedTool = 4;
+            toolbar.hideOtherDrops();
         }
     },
 
@@ -122,7 +154,7 @@ Toolbar.prototype.add = function(nav, text) {
 }
 
 Toolbar.prototype.dropItem = function(nav, text, callback) {
-    if(text != 'br') {
+    if(typeof callback == 'function') {
         var item = $('<div/>', {
             class : 'item'
         }).text(text).click(callback);
@@ -156,7 +188,7 @@ Toolbar.prototype.expandDrop = function(index) {
         clearTimeout(this.dropTimers[index]);
         this.dropTimers[index] = setTimeout(function(){
             dropdown.scale(1).css('opacity', '1');
-            $('.ui-bar .nav').eq(index).addClass('selected');
+            nav.addClass('selected');
         }, 25);
     }
 }
@@ -201,28 +233,33 @@ function generateUI() {
             toolbar.dropItem(prop, subKey, tools[key][subKey]);
         }
     }
+}
 
-    // Building music roll
-    var span = 60;
-    var range = 100;
+// ---------------------------------------
+// -------------- Music roll -------------
 
-    var musicBox = $('.music');
-
-    /*
-    for(var y = 0 ; y < span ; y++) {
-        for(var x = 0 ; x < range ; x++) {
-            musicBox.append(
-                $('<div/>', {
-                    class : 'note',
-                    css   : {
-                        top  : y*30,
-                        left : x*30
-                    }
-                })
-            );
+function putNote(x, y) {
+    var note = $('<div/>', {
+        class : 'note',
+        css : {
+            width : '30px',
+            top   : (y*30)+5 + 'px',
+            left  : x*30 + 'px'
         }
-    }
-    */
+    });
+    
+    note.scale(0).css('opacity', '0');
+    $('.music').append( note.addClass(instruments[selectedInstrument]) );
+    
+    note.delay(25).queue(function(){
+        $(this).scale(1).css('opacity', '1');
+        $(this).dequeue();
+    });
+}
+
+function eraseNote(x, y) {
+    // Look through all notes and see which one
+    // passes through this tile, if any
 }
 
 // ---------------------------------------
@@ -231,11 +268,14 @@ $(document).ready(function(){
 
     generateUI();
 
+    // Show dropdown menu
     $('.nav').click(function(){
         toolbarActive = true;
         toolbar.expandDrop( $(this).index() );
+        $('.nav').addClass('active');
     });
 
+    // Shop dropdown on hover if actively looking through options
     $('.nav').on('mouseenter', function(){
         if(toolbarActive) {
             var i = $(this).index();
@@ -243,12 +283,41 @@ $(document).ready(function(){
         }
     });
 
+    // Remove nav dropdowns if clicking outside of nav area
     $('*').click(function(e){
         e.stopPropagation();
         if(!$(this).hasClass('nav') && !$(this).hasClass('item')) {
             toolbar.hideOtherDrops();
-            toolbarActive = false;
             activeDrop = -1;
+            $('.nav').removeClass('active');
+            
+            setTimeout(function(){
+                toolbarActive = false;
+            }, 25);
+        }
+    });
+    
+    // Music roll actions (placing/interacting with notes, drag-scrolling)
+    $('.music').click(function(e){
+        if(!toolbarActive) {
+            var mouseX = e.clientX;
+            var mouseY = e.clientY;
+            
+            var container = $('.music').offset();
+            
+            var tileX = Math.floor( (mouseX - container.left) / 30 );
+            var tileY = Math.floor( (mouseY - container.top) / 30 );
+            
+            switch(selectedTool) {
+                case 1:     // Placing a new note
+                    putNote(tileX, tileY);
+                    break;
+                case 2:     // Erasing a note
+                    eraseNote(tileX, tileY);
+                    break;
+                case 3:     // Dragging the music roll
+                    break;
+            }
         }
     });
 

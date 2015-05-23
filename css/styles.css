@@ -27,7 +27,7 @@ main .sequencer {
     right: 5%;
     bottom: 5%;
     background: #FFF;
-    box-shadow: 0 0 3px 3px #0CE;
+    box-shadow: 0 0 6px 0px #0CE;
 }
 
 main .sequencer .content {
@@ -48,7 +48,7 @@ main .sequencer .content .ui-bar {
     right: 0;
     padding: 0 3%;
     background: #AEF;
-    box-shadow: 0 0 10px 0 #8CD inset;
+    box-shadow: 0 0 10px 0 #ADE inset;
 }
 
 main .sequencer .content .ui-bar .nav {
@@ -58,8 +58,7 @@ main .sequencer .content .ui-bar .nav {
     font-family: Tahoma;
     font-weight: bold;
     font-size: 16px;
-    color: #FFF;
-    text-shadow: 0 1px #8AF;
+    color: #0CE;
     line-height: 35px;
     cursor: pointer;
 
@@ -70,7 +69,7 @@ main .sequencer .content .ui-bar .nav {
     transition: background-color 0.05s, color 0.05s;
 }
 
-main .sequencer .content .ui-bar .nav:not(.selected):hover {
+main .sequencer .content .ui-bar .nav:not(.selected):not(.active):hover {
     background-color: rgba(0, 0, 0, 0.03);
     color: #EFF;
 }
@@ -96,7 +95,7 @@ main .sequencer .content .ui-dropdowns .nav-drop {
     top: 35px;
     background: #FFF;
     padding: 0 5px 0 10px;
-    box-shadow: 0 0 5px 0 #CEF;
+    box-shadow: 0 0 5px 0 #ACD;
 
     -ms-transform-origin: 0% 0%;
     -o-transform-origin: 0% 0%;
@@ -105,7 +104,8 @@ main .sequencer .content .ui-dropdowns .nav-drop {
     transform-origin: 0% 0%;
 }
 
-main .sequencer .content .ui-dropdowns .nav-drop.drop-transition {
+main .sequencer .content .ui-dropdowns .nav-drop.drop-transition,
+main .sequencer .content .music .note {
     -ms-transition: opacity 0.5s, -ms-transform 0.5s cubic-bezier(0.145, 1.650, 0.390, 0.855);
     -o-transition: opacity 0.5s, -o-transform 0.5s cubic-bezier(0.145, 1.650, 0.390, 0.855);
     -moz-transition: opacity 0.5s, -moz-transform 0.5s cubic-bezier(0.145, 1.650, 0.390, 0.855);
@@ -121,7 +121,7 @@ main .sequencer .content .ui-dropdowns .nav-drop div {
 
 main .sequencer .content .ui-dropdowns .nav-drop .item {
     margin-left: -10px;
-    padding: 3px 5px 3px 10px;
+    padding: 4px 5px 4px 10px;
     font-family: Tahoma;
     font-size: 16px;
     color: #5DF;
@@ -151,7 +151,9 @@ main .sequencer .content .music {
 
 main .sequencer .content .music .note {
     position: absolute;
-    width: 29px;
-    height: 29px;
-    border: 1px solid #DEE;
+    height: 21px;
+}
+
+.note.square {
+    background: #0FF;
 }
