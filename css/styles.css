@@ -149,6 +149,12 @@ main .sequencer .content .music {
     background-size: 30px 30px;
 }
 
+main .sequencer .content .music .preview-note {
+    position: absolute;
+    height: 15px;
+    background: #CCC;
+}
+
 main .sequencer .content .music .note {
     position: absolute;
     height: 21px;
