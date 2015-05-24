@@ -144,9 +144,18 @@ main .sequencer .content .music {
     top: 35px;
     left: 0;
     width: 30000px;
-    height: 1800px;
+    height: 2640px;
     background: url(../images/note-tile.png) top left repeat;
     background-size: 30px 30px;
+}
+
+main .sequencer .content .music.drag {
+    cursor: move;
+    cursor: all-scroll;
+}
+
+main .sequencer .content .music.select {
+    cursor: crosshair;
 }
 
 main .sequencer .content .music .preview-note {

@@ -17,6 +17,9 @@ var instruments = {
     4 : 'piano'
 }
 
+var sequence;
+
+var activeChannel = 1;
 var selectedTool = 1;
 var selectedInstrument = 1;
 
@@ -73,9 +76,13 @@ var tools = {
         'br' : null,
 
         'Play' : function() {
+            sequence.play();
+            resetNavDrops();
         },
 
         'Pause' : function() {
+            sequence.stop();
+            resetNavDrops();
         },
 
         'Restart' : function() {
@@ -90,23 +97,27 @@ var tools = {
     Tools   : {
         'Notate' : function() {
             selectedTool = 1;
-            toolbar.hideOtherDrops();
+            resetNavDrops();
+            page.$music.removeClass('select drag');
         },
 
         'Erase' : function() {
             selectedTool = 2;
-            toolbar.hideOtherDrops();
-        },
-
-        'Scroll' : function() {
-            selectedTool = 3;
-            toolbar.hideOtherDrops();
+            resetNavDrops();
+            page.$music.removeClass('select drag');
         },
 
         'Select' : function() {
+            selectedTool = 3;
+            resetNavDrops();
+            page.$music.removeClass('drag').addClass('select');
+        },
+
+        'Scroll' : function() {
             selectedTool = 4;
-            toolbar.hideOtherDrops();
-        }
+            resetNavDrops();
+            page.$music.removeClass('select').addClass('drag');
+        },
     },
 
     Options : {
@@ -118,6 +129,32 @@ var tools = {
 
         'Instruments' : function() {
         }
+    },
+
+    Channel : {
+        'Channel 1' : function(){
+        },
+
+        'Channel 2' : function(){
+        },
+
+        'Channel 3' : function(){
+        },
+
+        'Channel 4' : function(){
+        },
+
+        'Channel 5' : function(){
+        },
+
+        'Channel 6' : function(){
+        },
+
+        'Channel 7' : function(){
+        },
+
+        'Channel 8' : function(){
+        },
     },
 
     Toggle  : {
@@ -238,6 +275,13 @@ function generateUI() {
     }
 }
 
+function resetNavDrops() {
+    toolbar.hideOtherDrops();
+    toolbarActive = false;
+    $('.nav').removeClass('active');
+    activeDrop = -1;
+}
+
 // ---------------------------------------
 // -------------- Music roll -------------
 function getTile(mouseX, mouseY) {
@@ -258,7 +302,7 @@ function putPreviewNote(x, y) {
             left  : x*30 + 'px',
         }
     });
-    
+
     page.$music.append(pNote);
 
     return pNote;
@@ -281,11 +325,22 @@ function putNote(x, y, width) {
         $(this).scale(1).css('opacity', '1');
         $(this).dequeue();
     });
+    
+    var pitch    = frequency(88-y);
+    var time     = x;
+    var duration = Math.ceil( width/30 );
+    
+    sequence.channel[activeChannel-1].write(pitch, time, duration);
 }
 
 function eraseNote(x, y) {
     // Look through all notes and see which one
     // passes through this tile, if any
+}
+
+function generateSequence() {
+    sequence = new Sequence();
+    sequence.build();
 }
 
 // ---------------------------------------
@@ -351,6 +406,10 @@ $(document).ready(function(){
 
     // Dragging along the music roll
     $('.music').on('mousedown', function(e){
+        if(toolbarActive) {
+            return;
+        }
+
         var mouseX = e.clientX;
         var mouseY = e.clientY;
 
@@ -370,7 +429,7 @@ $(document).ready(function(){
         page.$body.on('mousemove', function(e){
             mouseDrag = true;
             clearTimeout(dragTimer);
-            
+
             var nMouseX = e.clientX;
             var nMouseY = e.clientY;
 
@@ -395,9 +454,14 @@ $(document).ready(function(){
         page.$body.on('mouseup', function(e){
             page.$body.off('mousemove mouseup');
             
+            if(!mouseDrag) {
+                // Action will be processed by the click handler
+                return;
+            }
+
             var fMouseX = e.clientX;
             var fMouseY = e.clientY;
-            
+
             var finalTile = getTile(fMouseX, fMouseY);
 
             // Only note placement and note selection should trigger
@@ -405,18 +469,22 @@ $(document).ready(function(){
             switch(selectedTool) {
                 case 1:     // Placing an elongated new note
                     pNote.remove();
-                    putNote(tile.x, tile.y, 30+(30*(finalTile.x - tile.x)));
+                    if(finalTile.x >= tile.x) {
+                        putNote(tile.x, tile.y, 30+(30*(finalTile.x - tile.x)));
+                    }
                     break;
                 case 3:     // Selecting notes (group all selected)
                     break;
             }
-            
+
             dragTimer = setTimeout(resetMouseDrag, 250);
         });
     });
+    
+    generateSequence();
 
     init = true;
-    
+
     page.$body.on('mousedown', function(e){
         e.preventDefault();
     });
