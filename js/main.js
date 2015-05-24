@@ -3,12 +3,13 @@
 var init = false;
 
 var page = {
-    $window : $(window),
-    width   : $(window).width(),
-    height  : $(window).height(),
-    $body   : $('body'),
-    $piano  : $('.piano'),
-    $music  : $('.music')
+    $window    : $(window),
+    width      : $(window).width(),
+    height     : $(window).height(),
+    $body      : $('body'),
+    $sequencer : $('.sequencer .content'),
+    $piano     : $('.piano'),
+    $music     : $('.music')
 }
 
 var instruments = {
@@ -36,6 +37,7 @@ function handleResize() {
     if(init) {
         updateCorners();
         toolbar.resize();
+        lockScrollBottom();
     }
 }
 
@@ -79,17 +81,19 @@ var tools = {
 
         'br' : null,
 
-        'Play' : function() {
+        'Play [P]' : function() {
             sequence.play();
             resetNavDrops();
         },
 
-        'Pause' : function() {
-            closeAudioContext();
+        'Pause [P]' : function() {
+            sequence.pause();
             resetNavDrops();
         },
 
-        'Restart' : function() {
+        'Restart [R]' : function() {
+            sequence.restart();
+            resetNavDrops();
         },
 
         'br2' : null,
@@ -99,25 +103,25 @@ var tools = {
     },
 
     Tools   : {
-        'Notate' : function() {
+        'Notate [N]' : function() {
             selectedTool = 1;
             resetNavDrops();
             page.$music.removeClass('select drag');
         },
 
-        'Erase' : function() {
+        'Erase [E]' : function() {
             selectedTool = 2;
             resetNavDrops();
             page.$music.removeClass('select drag');
         },
 
-        'Select' : function() {
+        'Select [S]' : function() {
             selectedTool = 3;
             resetNavDrops();
             page.$music.removeClass('drag').addClass('select');
         },
 
-        'Drag Area' : function() {
+        'Drag Area [D]' : function() {
             selectedTool = 4;
             resetNavDrops();
             page.$music.removeClass('select').addClass('drag');
@@ -136,28 +140,28 @@ var tools = {
     },
 
     Channel : {
-        'Channel 1' : function(){
+        'Channel 1 [1]' : function(){
         },
 
-        'Channel 2' : function(){
+        'Channel 2 [2]' : function(){
         },
 
-        'Channel 3' : function(){
+        'Channel 3 [3]' : function(){
         },
 
-        'Channel 4' : function(){
+        'Channel 4 [4]' : function(){
         },
 
-        'Channel 5' : function(){
+        'Channel 5 [5]' : function(){
         },
 
-        'Channel 6' : function(){
+        'Channel 6 [6]' : function(){
         },
 
-        'Channel 7' : function(){
+        'Channel 7 [7]' : function(){
         },
 
-        'Channel 8' : function(){
+        'Channel 8 [8]' : function(){
         },
     },
 
@@ -378,13 +382,31 @@ function putNote(x, y, width) {
 }
 
 function eraseNote(element) {
+    element.off('mouseenter').trigger('mouseleave');                    // Force unhover
+    element.addClass('erase');
+    element.css('background-color', element.css('background-color'));   // Lock the erased state
+
     var note = parseInt(element.attr('data-note'));
-    element.scale(0.5).css('opacity', '0').delay(550).queue(function(){
+    element.css('opacity', '0').scale(0.5).delay(550).queue(function(){
         $(this).dequeue();
         $(this).remove();
     });
     
     sequence.channel[activeChannel-1].erase(note);
+}
+
+function scrollMusicTo(x, y) {
+    page.$piano.moveXY('0',      35+y + 'px');
+    page.$music.moveXY(x + 'px', 35+y + 'px');
+}
+
+function lockScrollBottom() {
+    var limit = -1*(2640 - page.$sequencer.height())-35;
+
+    if(roll.scroll.y <= limit) {
+        page.$piano.css('top', limit+35);
+        page.$music.css('top', limit+35);
+    }
 }
 
 function generateSequence() {
@@ -480,7 +502,7 @@ $(document).ready(function(){
                 noteAction = true;
 
                 page.$body.on('mousemove', function(e){
-                    if((note.x + note.w) - e.clientX < 12) {
+                    if((note.x + note.w) - e.clientX < 15) {
                         el.addClass('stretch');
                     } else {
                         el.removeClass('stretch');
@@ -505,13 +527,10 @@ $(document).ready(function(){
             if(!noteGrab) {
                 page.$body.off('mousemove');
             }
-            $(this).css('opacity', '1.0').removeClass('stretch');
-            noteAction = false;
         }
         
-        if(!toolbarActive && selectedTool == 2) {
-            $(this).removeClass('erase');
-        }
+        $(this).css('opacity', '1.0').removeClass('stretch erase');
+        noteAction = false;
     });
     
     // Note manipulation
@@ -521,19 +540,14 @@ $(document).ready(function(){
             var note = {
                 x    : el.offset().left,
                 y    : el.offset().top,
-                top  : parseInt(el.css('top')),
-                left : parseInt(el.css('left')),
                 w    : el.width(),
                 id   : parseInt(el.attr('data-note'))
             };
 
             note.data  = sequence.channel[activeChannel-1].notes[note.id];
-            note.tileX = Math.round(note.left/30);
-            note.tileY = Math.round(note.top/30);
-
-            var xTileDiff = getTile(e.clientX, e.clientY).x - note.tileX;
-            console.log(note.tileX);
-
+            note.tileX = Math.round( parseInt(el.css('left'))/30 );
+            note.tileY = Math.round( parseInt(el.css('top'))/30 );
+            
             playPreview(note.data.pitch, false);
 
             clearTimeout(grabTimer);
@@ -541,7 +555,8 @@ $(document).ready(function(){
 
             var mouse = {x: e.clientX, y: e.clientY}
             var delta = {x: 0, y: 0}
-            var action = ((note.x + note.w) - mouse.x < 12) ? 'stretch' : 'move';
+            var xTileDiff = getTile(e.clientX, e.clientY).x - note.tileX;
+            var action = ((note.x + note.w) - mouse.x < 15) ? 'stretch' : 'move';
 
             page.$body.on('mousemove', function(e){
                 delta.x = e.clientX - mouse.x;
@@ -647,6 +662,7 @@ $(document).ready(function(){
                 case 4:     // Dragging the music roll view
                     var newX = roll.scroll.x + delta.x;
                     var newY = roll.scroll.y + delta.y;
+                    var yLimit = -1*(2640 - page.$sequencer.height()) - 35;
 
                     if(newX >= 0) {
                         roll.scroll.x -= newX;
@@ -657,9 +673,13 @@ $(document).ready(function(){
                         roll.scroll.y -= newY;
                         newY = 0;
                     }
+
+                    if(newY <= yLimit) {
+                        roll.scroll.y -= (newY - yLimit);
+                        newY = yLimit;
+                    }
                     
-                    page.$piano.moveXY(0, 35+newY + 'px');
-                    page.$music.moveXY(newX + 'px', 35+newY + 'px');
+                    scrollMusicTo(newX, newY);
                     break;
             }
         });
@@ -715,6 +735,43 @@ $(document).ready(function(){
     // Prevent other default actions
     page.$body.on('mousedown', function(e){
         e.preventDefault();
+    });
+    
+    $(document).on('keydown', function(e){
+        if(!init) {
+            return;
+        }
+
+        var tools = $('.ui-dropdowns .nav-drop').eq(1).find('.item');
+        var channels = $('.ui-dropdowns .nav-drop').eq(3).find('.item');
+        
+        switch(e.which) {
+            // File
+            case 80:    // Play or pause
+                if(sequence.playing) {
+                    sequence.pause();
+                } else {
+                    sequence.play();
+                }
+                break;
+            case 82:    // Restart from beginning
+                sequence.restart();
+                break;
+        
+            // Tools
+            case 78:    // Notate
+                tools.eq(0).click();
+                break;
+            case 69:    // Erase
+                tools.eq(1).click();
+                break;
+            case 83:    // Select
+                tools.eq(2).click();
+                break;
+            case 68:    // Drag
+                tools.eq(3).click();
+                break;
+        }
     });
     
     generateSequence();

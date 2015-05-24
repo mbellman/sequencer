@@ -4,11 +4,14 @@
 function Sequence() {
     this.channel = [];
     this.tempo = 180;       // In BPM, where four 16th notes constitute a single beat
+    
+    this.playing = false;
 
-    this.build = build;
-    this.timer = timer;
-    this.play  = play;
-    this.stop  = stop;
+    this.build   = build;
+    this.timer   = timer;
+    this.play    = play;
+    this.pause   = pause;
+    this.restart = restart;
 
     function build() {
         for(var c = 0 ; c < 8 ; c++) {
@@ -23,6 +26,11 @@ function Sequence() {
     
     function play() {
         refreshAudioContext();
+        
+        this.playing = true;
+        
+        var lastNote = null;
+        var lastTime = 0;
 
         for(c in this.channel) {
             var channel = this.channel[c];
@@ -39,9 +47,28 @@ function Sequence() {
                         this.timer(note.time + note.duration)
                     );
                     oscillator.connect();
+                    
+                    if(note.time + note.duration > lastTime) {
+                        // Currently the farthest note in the sequence
+                        lastNote = oscillator;
+                    }
                 }
             }
         }
+
+        // Bind sequence end handler to the last note
+        lastNote.bindEnd();
+    }
+        
+    function pause() {
+        if(this.playing) {
+            this.playing = false;
+            closeAudioContext();
+        }
+    }
+        
+    function restart() {
+        
     }
 }
 
@@ -126,6 +153,7 @@ function Oscillator(_pitch, _startTime, _endTime) {
     
     this.create  = create;
     this.connect = connect;
+    this.bindEnd = bindEnd;
     this.dispose = dispose;
     
     function create() {
@@ -141,6 +169,12 @@ function Oscillator(_pitch, _startTime, _endTime) {
         this.object.start(this.startTime);
         if(this.endTime != null) {
             this.object.stop(this.endTime);
+        }
+    }
+    
+    function bindEnd() {
+        this.object.onended = function(){
+            sequence.playing = false;
         }
     }
     
