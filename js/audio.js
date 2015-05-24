@@ -18,7 +18,6 @@ function Sequence() {
     
     function timer(time) {
         var bps = this.tempo / 60;
-        
         return (time*(1/bps))*1/4;
     }
     
@@ -33,20 +32,15 @@ function Sequence() {
             for(var n = 0 ; n < totalNotes ; n++) {
                 var note = notes[n];
                 
-                var oscillator = new Oscillator(
-                    note.pitch,
-                    this.timer(note.time),
-                    this.timer(note.time + note.duration)
-                );
-                oscillator.connect();
+                if(!note.disposed) {
+                     var oscillator = new Oscillator(
+                        note.pitch,
+                        this.timer(note.time),
+                        this.timer(note.time + note.duration)
+                    );
+                    oscillator.connect();
+                }
             }
-        }
-    }
-    
-    function stop() {
-        if(audioActive) {
-            audioCtx.close();
-            audioActive = false;
         }
     }
 }
@@ -63,7 +57,7 @@ function Channel(_instrument) {
     }
 
     function erase(note) {
-        this.notes.splice(note, 1);
+        this.notes[note].disposed = true;
     }
 }
 
@@ -71,12 +65,17 @@ function Note(_pitch, _time, _duration) {
     this.pitch    = _pitch;
     this.time     = _time;
     this.duration = _duration;
+
+    // When set to true, this note will no longer play in the audio
+    // stream or become part of the serialized audio file output
+    this.disposed = false;
 }
 
 
 // ------------------------- //
 // -- Web Audio API Tools -- //
 // ------------------------- //
+var audioCtx;
 var audioActive = false;
 
 window.audioContext = (window.audioContext || window.webkitAudioContext);
@@ -91,6 +90,24 @@ function refreshAudioContext() {
     gainNode.gain.value = 1/3;
     
     audioActive = true;
+}
+
+function closeAudioContext() {
+    if(audioActive) {
+        audioCtx.close();
+        audioActive = false;
+    }
+}
+
+function playPreview(pitch, infinite) {
+    if(!audioActive) {
+        refreshAudioContext();
+    }
+
+    var preview = new Oscillator(pitch, audioCtx.currentTime, (infinite ? null : audioCtx.currentTime+0.25));
+    preview.connect();
+    
+    return preview;
 }
 
 // -- Tones -- //
@@ -109,6 +126,7 @@ function Oscillator(_pitch, _startTime, _endTime) {
     
     this.create  = create;
     this.connect = connect;
+    this.dispose = dispose;
     
     function create() {
         this.object = audioCtx.createOscillator();
@@ -121,7 +139,15 @@ function Oscillator(_pitch, _startTime, _endTime) {
         gainNode.connect(audioCtx.destination);
 
         this.object.start(this.startTime);
-        this.object.stop(this.endTime);
+        if(this.endTime != null) {
+            this.object.stop(this.endTime);
+        }
+    }
+    
+    function dispose() {
+        if(audioActive) {
+            this.object.stop(audioCtx.currentTime);
+        }
     }
     
     this.create();

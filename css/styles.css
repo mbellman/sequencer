@@ -28,6 +28,7 @@ main .sequencer {
     bottom: 5%;
     background: #FFF;
     box-shadow: 0 0 6px 0px #0CE;
+    opacity: 0;
 }
 
 main .sequencer .content {
@@ -38,6 +39,7 @@ main .sequencer .content {
     bottom: 3px;
     border: 3px solid #0CE;
     overflow: hidden;
+    z-index: 2;
 }
 
 main .sequencer .content .ui-bar {
@@ -49,6 +51,7 @@ main .sequencer .content .ui-bar {
     padding: 0 3%;
     background: #AEF;
     box-shadow: 0 0 10px 0 #ADE inset;
+    z-index: 4;
 }
 
 main .sequencer .content .ui-bar .nav {
@@ -95,7 +98,7 @@ main .sequencer .content .ui-dropdowns .nav-drop {
     top: 35px;
     background: #FFF;
     padding: 0 5px 0 10px;
-    box-shadow: 0 0 5px 0 #ACD;
+    box-shadow: 0 0 5px 0 #9BC;
 
     -ms-transform-origin: 0% 0%;
     -o-transform-origin: 0% 0%;
@@ -104,6 +107,7 @@ main .sequencer .content .ui-dropdowns .nav-drop {
     transform-origin: 0% 0%;
 }
 
+main .sequencer,
 main .sequencer .content .ui-dropdowns .nav-drop.drop-transition,
 main .sequencer .content .music .note {
     -ms-transition: opacity 0.5s, -ms-transform 0.5s cubic-bezier(0.145, 1.650, 0.390, 0.855);
@@ -139,6 +143,56 @@ main .sequencer .content .ui-dropdowns .nav-drop .break {
     margin: 2px 0 2px -1px;
 }
 
+main .sequencer .content .piano,
+main .sequencer .content .music {
+    -ms-transition: -ms-transform 0.5s ease-in-out;
+    -o-transition: -o-transform 0.5s ease-in-out;
+    -moz-transition: -moz-transform 0.5s ease-in-out;
+    -webkit-transition: -webkit-transform 0.5s ease-in-out;
+    transition: transform 0.5s ease-in-out;
+}
+
+main .sequencer .content .piano {
+    position: absolute;
+    width: 100px;
+    height: 2640px;
+    top: 35px;
+    border: 0;
+    left: 0;
+    z-index: 2;
+}
+
+main .sequencer .content .piano .key {
+    position: relative;
+    height: 29px;
+    margin-top: -1px;
+    border: 0;
+    border-top: 1px solid #BBB;
+    border-right: 1px solid #BBB;
+    border-bottom: 1px solid #BBB;
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+    background: linear-gradient(to bottom, #DDD 0%,#FFF 10%,#FFF 90%,#DDD 100%);
+    cursor: pointer;
+}
+
+main .sequencer .content .piano .key:nth-child(1) {
+    margin-top: 0;
+}
+
+main .sequencer .content .piano .key.black {
+    border-right: 1px solid #000;
+    background: linear-gradient(to bottom, #666 0%,#333 10%,#333 90%,#666 100%);
+}
+
+main .sequencer .content .piano .key:not(.black):hover {
+    background: #EEE;
+}
+
+main .sequencer .content .piano .key.black:hover {
+    background: #000;
+}
+
 main .sequencer .content .music {
     position: absolute;
     top: 35px;
@@ -147,6 +201,12 @@ main .sequencer .content .music {
     height: 2640px;
     background: url(../images/note-tile.png) top left repeat;
     background-size: 30px 30px;
+
+    -ms-transform: translateX(100px);
+    -o-transform: translateX(100px);
+    -moz-transform: translateX(100px);
+    -webkit-transform: translateX(100px);
+    transform: translateX(100px);
 }
 
 main .sequencer .content .music.drag {
@@ -167,6 +227,14 @@ main .sequencer .content .music .preview-note {
 main .sequencer .content .music .note {
     position: absolute;
     height: 21px;
+}
+
+.note.stretch {
+    cursor: w-resize;
+}
+
+.note.erase {
+    background-color: rgba(255, 0, 0, 0.3) !important;
 }
 
 .note.square {
