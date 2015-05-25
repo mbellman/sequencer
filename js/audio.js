@@ -42,7 +42,7 @@ function Sequence() {
                 
                 if(!note.disposed) {
                      var oscillator = new Oscillator(
-                        note.pitch,
+                        frequency(88-note.pitch),
                         this.timer(note.time),
                         this.timer(note.time + note.duration)
                     );

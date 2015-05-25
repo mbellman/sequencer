@@ -28,6 +28,11 @@ var selectedInstrument = 1;
 var pianoRoll = true;
 var extendedView = true;
 
+var pianoPreview = false;
+
+var notesSelected = false;
+var movingNotes = false;
+
 // ---------------------------------------
 // -------------- Handlers ---------------
 function handleResize() {
@@ -107,12 +112,14 @@ var tools = {
             selectedTool = 1;
             resetNavDrops();
             page.$music.removeClass('select drag');
+            $('.note').removeClass('selected');
         },
 
         'Erase [E]' : function() {
             selectedTool = 2;
             resetNavDrops();
             page.$music.removeClass('select drag');
+            $('.note').removeClass('selected');
         },
 
         'Select [S]' : function() {
@@ -125,6 +132,7 @@ var tools = {
             selectedTool = 4;
             resetNavDrops();
             page.$music.removeClass('select').addClass('drag');
+            $('.note').removeClass('selected');
         },
     },
 
@@ -355,7 +363,7 @@ function putPreviewNote(x, y) {
 
 function putNote(x, y, width) {
     var note = $('<div/>', {
-        class : 'note',
+        class : 'note channel-' + activeChannel,
         css   : {
             width : width + 'px',
             top   : (y*30)+5 + 'px',
@@ -374,8 +382,8 @@ function putNote(x, y, width) {
         $(this).dequeue();
     });
     
-    var pitch    = frequency(88-y);
     var time     = x;
+    var pitch    = y;//frequency(88-y);
     var duration = Math.ceil( width/30 );
     
     sequence.channel[activeChannel-1].write(pitch, time, duration);
@@ -393,6 +401,74 @@ function eraseNote(element) {
     });
     
     sequence.channel[activeChannel-1].erase(note);
+}
+
+function startSelection(x, y) {
+    var container = page.$music.offset();
+
+    var selectArea = $('<div/>', {
+        class : 'selection',
+        css   : {
+            width  : '0px',
+            height : '0px',
+            top    : y-container.top  + 'px',
+            left   : x-container.left + 'px'
+        }
+    }).appendTo(page.$music);
+
+    return {
+        element  : selectArea,
+        initTop  : y-container.top,
+        initLeft : x-container.left
+    };
+}
+
+function selectNotes(range) {
+    notesSelected = false;
+
+    $('.note.channel-' + activeChannel).each(function(){
+        var el = {
+            jq : $(this),
+            x  : $(this).position().left,
+            y  : $(this).position().top,
+            w  : $(this).width(),
+            h  : $(this).height()
+        }
+        
+        var inRange = false;
+
+        if( (range.x < el.x && range.x+range.w > el.x) || (range.x > el.x && range.x < el.x+el.w) ) {
+            if( (range.y < el.y && range.y+range.h > el.y) || (range.y > el.y && range.y < el.y+el.h) ) {
+                // Element within selection range
+                inRange = true;
+                notesSelected = true;
+                el.jq.addClass('selected');
+            }
+        }
+        
+        if(!inRange) el.jq.removeClass('selected');
+    });
+}
+
+function shiftGroupXY(deltaX, deltaY) {
+    $('.note.selected').each(function(){
+        var el = $(this);
+        
+        var note = {
+            channel : parseInt(el.attr('data-channel')),
+            id      : parseInt(el.attr('data-note'))
+        }
+        
+        note.data = sequence.channel[activeChannel-1].notes[note.id];
+        
+        note.data.time  += deltaX;
+        note.data.pitch += deltaY;
+        
+        el.css({
+            'top'  : 5 + note.data.pitch*30 + 'px',
+            'left' : note.data.time*30 + 'px'
+        });
+    });
 }
 
 function scrollMusicTo(x, y) {
@@ -465,10 +541,34 @@ $(document).ready(function(){
         var note = parseInt(key.attr('data-key'));
         var pSound = playPreview(frequency(88-note), true);
         
+        pianoPreview = true;
+        
+        page.$body.on('mouseup', function(){
+            page.$body.off('mouseup');
+            pianoPreview = false;
+        });
+        
         key.on('mouseup mouseleave', function(){
             key.off('mouseup mouseleave');
             pSound.dispose();
         });
+    }).on('mouseenter', function(){
+        if(pianoPreview) {
+            var key = $(this);
+            
+            var note = parseInt(key.attr('data-key'));
+            var pSound = playPreview(frequency(88-note), true);
+            
+            page.$body.on('mouseup', function(){
+                page.$body.on('mouseup');
+                pSound.dispose();
+            });
+
+            key.on('mouseup mouseleave', function(){
+                key.off('mouseup mouseleave');
+                pSound.dispose();
+            });
+        }
     });
 
     // Placing a single note
@@ -511,12 +611,17 @@ $(document).ready(function(){
             }
             
             if(selectedTool == 2) {
+                // Preparing to erase note
                 el.addClass('erase');
 
                 if(erasing) {
                     // Removing note
                     eraseNote(el);
                 }
+            }
+            
+            if(selectedTool == 3 && notesSelected && el.hasClass('selected')) {
+                noteAction = true;
             }
         }
     });
@@ -548,7 +653,7 @@ $(document).ready(function(){
             note.tileX = Math.round( parseInt(el.css('left'))/30 );
             note.tileY = Math.round( parseInt(el.css('top'))/30 );
             
-            playPreview(note.data.pitch, false);
+            playPreview(frequency(88-note.data.pitch), false);
 
             clearTimeout(grabTimer);
             noteGrab = true;
@@ -571,7 +676,7 @@ $(document).ready(function(){
                         var newLeft = (tile.x-xTileDiff)*30;
 
                         var newTime  = Math.floor(newLeft/30);
-                        var newPitch = frequency(88-Math.floor(newTop/30));
+                        var newPitch = Math.floor(newTop/30);
 
                         if(newTime != note.data.time) {
                             note.data.time = newTime;
@@ -579,7 +684,7 @@ $(document).ready(function(){
                         }
 
                         if(newPitch != note.data.pitch) {
-                            playPreview(newPitch, false);
+                            playPreview(frequency(88-newPitch), false);
                             note.data.pitch = newPitch;
                             el.css('top', newTop + 'px');
                         }
@@ -614,15 +719,18 @@ $(document).ready(function(){
     // Dragging along the music roll
     page.$music.on('mousedown', function(e){
         if(toolbarActive || (selectedTool == 1 && (noteAction || noteGrab))) {
+            // Toolbar being open means we do nothing.
+
+            // If notate tool is active and we're already hovering
+            // over a note or directly manipulating it, do nothing.
             return;
         }
 
         var mouseX = e.clientX;
         var mouseY = e.clientY;
+        var delta = {x: 0, y: 0};
 
         var tile = getTile(mouseX, mouseY);
-
-        var delta = {x: 0, y: 0};
 
         switch(selectedTool) {
             case 1:     // Placing a new note
@@ -633,22 +741,36 @@ $(document).ready(function(){
                 erasing = true;
                 break;
             case 3:     // Starting an area selection
-                break;
-            case 4:     // Dragging music roll
+
+                if(!(selectedTool == 3 && notesSelected && noteAction)) {
+                    // Only start the new selection if we aren't
+                    // already preparing to move a selected group
+                    $('.note').removeClass('selected');
+
+                    var selectArea = startSelection(mouseX, mouseY);
+                    var selectRange = {
+                        x: 0,
+                        y: 0,
+                        w: 0,
+                        h: 0
+                    }
+                } else {
+                    movingNotes = true;
+                    var updateTile = {x: tile.x, y: tile.y};      // Track movement of note group
+                }
                 break;
         }
 
         page.$body.on('mousemove', function(e){
-            mouseDrag = true;
             clearTimeout(dragTimer);
+            mouseDrag = true;
 
             var nMouseX = e.clientX;
             var nMouseY = e.clientY;
+            var newTile = getTile(nMouseX, nMouseY);
 
             delta.x = nMouseX - mouseX;
             delta.y = nMouseY - mouseY;
-
-            var newTile = getTile(nMouseX, nMouseY);
 
             // Drag actions
             switch(selectedTool) {
@@ -658,8 +780,53 @@ $(document).ready(function(){
                 case 2:     // Erasing any notes covered by the mouse (handled separately)
                     break;
                 case 3:     // Selecting notes
+
+                    if(!movingNotes) {
+                        // Creating a new selection range
+                        if(delta.x < 0) {
+                            selectArea.element.css('left', selectArea.initLeft + delta.x + 'px');
+                            selectRange.x = selectArea.initLeft + delta.x;
+                        } else {
+                            selectArea.element.css('left', selectArea.initLeft + 'px');
+                            selectRange.x = selectArea.initLeft;
+                        }
+
+                        if(delta.y < 0) {
+                            selectArea.element.css('top', selectArea.initTop + delta.y + 'px');
+                            selectRange.y = selectArea.initTop + delta.y;
+                        } else {
+                            selectArea.element.css('top', selectArea.initTop + 'px');
+                            selectRange.y = selectArea.initTop;
+                        }
+
+                        selectArea.element.css({
+                            'width'  : Math.abs(delta.x) + 'px',
+                            'height' : Math.abs(delta.y) + 'px'
+                        });
+
+                        selectRange.w = Math.abs(delta.x);
+                        selectRange.h = Math.abs(delta.y);
+
+                        selectNotes(selectRange);
+                    } else {
+                        // Dragging a group of selected notes
+                        var newTile = getTile(nMouseX, nMouseY);
+                        
+                        if(newTile.x != updateTile.x) {
+                            shiftGroupXY(newTile.x - updateTile.x, 0);
+                            updateTile.x = newTile.x;
+                        }
+                        
+                        if(newTile.y != updateTile.y) {
+                            shiftGroupXY(0, newTile.y - updateTile.y);
+                            updateTile.y = newTile.y;
+                        }
+                    }
+
                     break;
+
                 case 4:     // Dragging the music roll view
+
                     var newX = roll.scroll.x + delta.x;
                     var newY = roll.scroll.y + delta.y;
                     var yLimit = -1*(2640 - page.$sequencer.height()) - 35;
@@ -678,7 +845,7 @@ $(document).ready(function(){
                         roll.scroll.y -= (newY - yLimit);
                         newY = yLimit;
                     }
-                    
+
                     scrollMusicTo(newX, newY);
                     break;
             }
@@ -691,11 +858,16 @@ $(document).ready(function(){
                 // Removing preview note/stopping preview sound
                 pNote.remove();
                 pSound.dispose();
-            }
-            
+            } else
             if(selectedTool == 2) {
                 // Stopping erasure
                 erasing = false;
+            } else
+            if(selectedTool == 3) {
+                // Rigorous select area removal
+                page.$music.find('.selection').remove();
+                
+                movingNotes = false;
             }
             
             if(!mouseDrag) {
