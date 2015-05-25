@@ -33,6 +33,11 @@ var pianoPreview = false;
 var notesSelected = false;
 var movingNotes = false;
 
+var keys = {
+    SHIFT : false,
+    CTRL  : false
+}
+
 // ---------------------------------------
 // -------------- Handlers ---------------
 function handleResize() {
@@ -112,27 +117,28 @@ var tools = {
             selectedTool = 1;
             resetNavDrops();
             page.$music.removeClass('select drag');
-            $('.note').removeClass('selected');
+            disableSelections();
         },
 
         'Erase [E]' : function() {
             selectedTool = 2;
             resetNavDrops();
             page.$music.removeClass('select drag');
-            $('.note').removeClass('selected');
+            disableSelections();
         },
 
         'Select [S]' : function() {
             selectedTool = 3;
             resetNavDrops();
             page.$music.removeClass('drag').addClass('select');
+            $('.select-bar').css('display', 'block');
         },
 
         'Drag Area [D]' : function() {
             selectedTool = 4;
             resetNavDrops();
             page.$music.removeClass('select').addClass('drag');
-            $('.note').removeClass('selected');
+            disableSelections();
         },
     },
 
@@ -334,15 +340,29 @@ var roll = {
     scroll : {
         x: 0,
         y: 0
-    }
+    },
+
+    clipboard : []
 }
+
+var tagViewTimer;
+
+/**
+ * Simple constructor for note data held in memory for pasting
+ */
+function NoteCopy(_pitch, _time, _duration) {
+    this.pitch    = _pitch;
+    this.time     = _time;
+    this.duration = _duration;
+}
+
 
 function getTile(mouseX, mouseY) {
     var container = $('.music').offset();
 
     return {
-        x: Math.floor( (mouseX - container.left) / 30 ),
-        y: Math.floor( (mouseY - container.top) / 30 )
+        x: Math.floor( (mouseX - container.left)/30 ),
+        y: Math.floor( (mouseY - container.top)/30 )
     }
 }
 
@@ -361,7 +381,7 @@ function putPreviewNote(x, y) {
     return pNote;
 }
 
-function putNote(x, y, width) {
+function putNote(x, y, width, animate) {
     var note = $('<div/>', {
         class : 'note channel-' + activeChannel,
         css   : {
@@ -372,8 +392,11 @@ function putNote(x, y, width) {
     });
     
     note.attr('data-channel', activeChannel)
-        .attr('data-note', sequence.channel[activeChannel-1].notes.length)
-        .scale(0).css('opacity', '0');
+        .attr('data-note', sequence.channel[activeChannel-1].notes.length);
+    
+    if(!!animate) {
+        note.scale(0).css('opacity', '0');
+    }
 
     page.$music.append( note.addClass(instruments[selectedInstrument]) );
 
@@ -383,7 +406,7 @@ function putNote(x, y, width) {
     });
     
     var time     = x;
-    var pitch    = y;//frequency(88-y);
+    var pitch    = y;
     var duration = Math.ceil( width/30 );
     
     sequence.channel[activeChannel-1].write(pitch, time, duration);
@@ -391,18 +414,43 @@ function putNote(x, y, width) {
 
 function eraseNote(element) {
     element.off('mouseenter').trigger('mouseleave');                    // Force unhover
-    element.addClass('erase');
+    element.addClass('erase erased');
     element.css('background-color', element.css('background-color'));   // Lock the erased state
 
     var note = parseInt(element.attr('data-note'));
+    sequence.channel[activeChannel-1].erase(note);
+
     element.css('opacity', '0').scale(0.5).delay(550).queue(function(){
         $(this).dequeue();
         $(this).remove();
     });
-    
-    sequence.channel[activeChannel-1].erase(note);
 }
 
+/**
+ * Runs after scrolling has stopped (determined by a
+ * timer delay). Labels all notes within approximately
+ * viewable range with a special class to optimize
+ * note selection range boundary clip checks.
+ */
+function tagViewableNotes() {
+    $('.note').removeClass('inView');
+    
+    $('.note.channel-' + activeChannel).each(function(){
+        var note = $(this);
+        var offset = note.offset();
+        var width = note.width();
+
+        // If note isn't in view, we won't tag it as such
+        if(offset.top + 21 < 0 || offset.top > page.height) return;
+        if(offset.left + width < 0 || offset.left > page.width) return;
+
+        note.addClass('inView');
+    });
+}
+
+/**
+ * Creates a new selection range element
+ */
 function startSelection(x, y) {
     var container = page.$music.offset();
 
@@ -423,22 +471,29 @@ function startSelection(x, y) {
     };
 }
 
+/**
+ * Grabs any notes clipped by the selection range
+ */
 function selectNotes(range) {
-    notesSelected = false;
+    if(!keys.SHIFT) {
+        notesSelected = false;
+    }
 
-    $('.note.channel-' + activeChannel).each(function(){
+    $('.note.channel-' + activeChannel + '.inView').each(function(){
+        var note = $(this);
+        var pos = note.position();
+
         var el = {
-            jq : $(this),
-            x  : $(this).position().left,
-            y  : $(this).position().top,
-            w  : $(this).width(),
-            h  : $(this).height()
+            jq : note,
+            x  : pos.left,
+            y  : pos.top,
+            w  : note.width()
         }
         
         var inRange = false;
 
         if( (range.x < el.x && range.x+range.w > el.x) || (range.x > el.x && range.x < el.x+el.w) ) {
-            if( (range.y < el.y && range.y+range.h > el.y) || (range.y > el.y && range.y < el.y+el.h) ) {
+            if( (range.y < el.y && range.y+range.h > el.y) || (range.y > el.y && range.y < el.y+21) ) {
                 // Element within selection range
                 inRange = true;
                 notesSelected = true;
@@ -446,34 +501,146 @@ function selectNotes(range) {
             }
         }
         
-        if(!inRange) el.jq.removeClass('selected');
+        if(!keys.SHIFT) {
+            if(!inRange) el.jq.removeClass('selected');
+        }
     });
 }
 
+/**
+ * Turns off selection mode
+ */
+function disableSelections() {
+    $('.note').removeClass('selected');
+    $('.select-bar').css('display', 'none');
+}
+
+/**
+ * Returns a pseudo note object representing a given
+ * note (referenced by element) shifted by deltaX/deltaY
+ */
+function noteDelta(element, deltaX, deltaY) {
+    var note = {
+        channel : parseInt(element.attr('data-channel')),
+        id      : parseInt(element.attr('data-note')),
+        dTime   : 0,
+        dPitch  : 0
+    }
+    
+    note.data = sequence.channel[note.channel-1].notes[note.id];
+    
+    note.dTime  = note.data.time + deltaX;
+    note.dPitch = note.data.pitch + deltaY;
+    
+    return note;
+}
+
+/**
+ * Move a group of selected notes
+ */
 function shiftGroupXY(deltaX, deltaY) {
+    var limit = false;
+    
+    // First we check to make sure no notes are
+    // being moved outside of the valid range
     $('.note.selected').each(function(){
-        var el = $(this);
+        var newNote = noteDelta($(this), deltaX, deltaY);
         
-        var note = {
-            channel : parseInt(el.attr('data-channel')),
-            id      : parseInt(el.attr('data-note'))
+        if(newNote.dTime < 0 || newNote.dPitch > 88 || newNote.dPitch < 0) {
+            limit = true;
         }
+    });
+    
+    if(limit) {
+        // Can't move notes outside of music roll boundaries
+        return;
+    }
+    
+    // Check passed, so actually move the notes this time!
+    $('.note.selected').each(function(){
+        var newNote = noteDelta($(this), deltaX, deltaY);
         
-        note.data = sequence.channel[activeChannel-1].notes[note.id];
+        newNote.data.time  = newNote.dTime;
+        newNote.data.pitch = newNote.dPitch;
         
-        note.data.time  += deltaX;
-        note.data.pitch += deltaY;
-        
-        el.css({
-            'top'  : 5 + note.data.pitch*30 + 'px',
-            'left' : note.data.time*30 + 'px'
+        $(this).css({
+            'top'  : 5 + newNote.data.pitch*30 + 'px',
+            'left' : newNote.data.time*30 + 'px'
         });
     });
+}
+
+/**
+ * Copy a group of notes to the "clipboard"
+ */
+function copyNotes() {
+    if(selectedTool == 3 && $('.note.selected').length > 0) {
+        roll.clipboard.length = 0;
+        
+        var firstNoteX = -1;    // Temporary init value
+        
+        $('.note.selected').each(function(){
+            var el = $(this);
+            note = {
+                channel : parseInt(el.attr('data-channel')),
+                id      : parseInt(el.attr('data-note'))
+            };
+
+            note.data = sequence.channel[note.channel-1].notes[note.id];
+            
+            if(firstNoteX == -1) {
+                // Begin tracking note time positions
+                firstNoteX = note.data.time;
+            } else {
+                if(note.data.time < firstNoteX) {
+                    // Keep track of the earliest note in the copied selection
+                    firstNoteX = note.data.time;
+                }
+            }
+
+            roll.clipboard.push(new NoteCopy(note.data.pitch, note.data.time, note.data.duration));
+        });
+        
+        for(var n = 0, totalCopies = roll.clipboard.length ; n < totalCopies ; n++) {
+            // Resetting time data relative to the first note in the copied group
+            roll.clipboard[n].time -= firstNoteX;
+        }
+    }
+}
+
+/**
+ * Paste a group of notes stored in the "clipboard"
+ * to the current focused column (selection mode)
+ */
+function pasteNotes() {
+    if(selectedTool == 3 && roll.clipboard.length > 0) {
+        // Ensure we have a view of where we're pasting the notes
+        if($('.select-bar').is(':visible')) {
+            var startX = Math.floor( $('.select-bar').position().left/30 );
+
+            for(var n = 0, totalCopies = roll.clipboard.length ; n < totalCopies ; n++) {
+                var copy = roll.clipboard[n];
+
+                putNote(
+                    copy.time + startX,
+                    copy.pitch,
+                    copy.duration*30,
+                    true
+                );
+            }
+        }
+ 
+        // Refresh viewable notes
+        setTimeout(tagViewableNotes, 250);
+    }
 }
 
 function scrollMusicTo(x, y) {
     page.$piano.moveXY('0',      35+y + 'px');
     page.$music.moveXY(x + 'px', 35+y + 'px');
+
+    clearTimeout(tagViewTimer);
+    tagViewTimer = setTimeout(tagViewableNotes, 250);
 }
 
 function lockScrollBottom() {
@@ -581,11 +748,34 @@ $(document).ready(function(){
 
             switch(selectedTool) {
                 case 1:     // Placing a new note
-                    putNote(tile.x, tile.y, 30);
+                    putNote(tile.x, tile.y, 30, true);
                     playPreview(frequency(88-tile.y), false);
+                    setTimeout(tagViewableNotes, 250);
                     break;
             }
         }
+    });
+
+    page.$music.on('mouseenter', function(){
+        if(selectedTool == 3 && !movingNotes && $('.selection').length == 0) {
+            // Show current focused column in selection mode
+            $('.select-bar').css('display', 'block');
+        }
+    });
+
+    page.$music.on('mouseleave', function(){
+        // Hide focused column indicator (selection mode)
+        $('.select-bar').css('display', 'none');
+    });
+
+    page.$music.on('mousemove', function(e){
+        // Update focused column position (even if it's not necessarily visible)
+        var tileX = getTile(e.clientX, e.clientY).x;
+        $('.select-bar').css({
+            'top'    : Math.abs(roll.scroll.y) + 'px',
+            'left'   : 8 + tileX*30 + 'px',
+            'height' : page.height + 'px'
+        });
     });
 
     // Hovering over a note - preparing for note interactions
@@ -629,12 +819,17 @@ $(document).ready(function(){
     // Mouse off the note - restoring normal functionality
     $(document).on('mouseleave', '.music .note', function(){
         if(!toolbarActive && selectedTool == 1) {
-            if(!noteGrab) {
+            if(!noteGrab && $('.preview-note').length == 0) {
+                // In notate mode, neither moving any notes nor
+                // creating new ones, so we remove the stretch
+                // indicator handler
                 page.$body.off('mousemove');
             }
         }
         
-        $(this).css('opacity', '1.0').removeClass('stretch erase');
+        if(!$(this).hasClass('erased')) {
+            $(this).css('opacity', '1.0').removeClass('stretch erase');
+        }
         noteAction = false;
     });
     
@@ -678,12 +873,12 @@ $(document).ready(function(){
                         var newTime  = Math.floor(newLeft/30);
                         var newPitch = Math.floor(newTop/30);
 
-                        if(newTime != note.data.time) {
+                        if(newTime != note.data.time && newTime >= 0) {
                             note.data.time = newTime;
                             el.css('left', newLeft + 'px');
                         }
 
-                        if(newPitch != note.data.pitch) {
+                        if(newPitch != note.data.pitch && newPitch >= 0 && newPitch <= 88) {
                             playPreview(frequency(88-newPitch), false);
                             note.data.pitch = newPitch;
                             el.css('top', newTop + 'px');
@@ -714,15 +909,24 @@ $(document).ready(function(){
         if(!toolbarActive && selectedTool == 2) {
             eraseNote($(this));
         }
+        
+        if(!toolbarActive && selectedTool == 3 && keys.SHIFT) {
+            notesSelected = true;
+            noteAction = true;
+            $(this).addClass('selected');
+        }
     });
 
     // Dragging along the music roll
     page.$music.on('mousedown', function(e){
-        if(toolbarActive || (selectedTool == 1 && (noteAction || noteGrab))) {
+        if(toolbarActive || (selectedTool == 1 && (noteAction || noteGrab)) || (selectedTool == 3 && noteAction && keys.SHIFT)) {
             // Toolbar being open means we do nothing.
 
             // If notate tool is active and we're already hovering
             // over a note or directly manipulating it, do nothing.
+            
+            // If selection tool is active and we're manually
+            // selecting notes with SHIFT, do nothing.
             return;
         }
 
@@ -742,10 +946,14 @@ $(document).ready(function(){
                 break;
             case 3:     // Starting an area selection
 
-                if(!(selectedTool == 3 && notesSelected && noteAction)) {
+                $('.select-bar').css('display', 'none');    // Temporarily disable column indicator (selection mode)
+
+                if(!(selectedTool == 3 && notesSelected && noteAction) || keys.SHIFT) {
                     // Only start the new selection if we aren't
                     // already preparing to move a selected group
-                    $('.note').removeClass('selected');
+                    if(!keys.SHIFT) {
+                        $('.note').removeClass('selected');
+                    }
 
                     var selectArea = startSelection(mouseX, mouseY);
                     var selectRange = {
@@ -866,6 +1074,7 @@ $(document).ready(function(){
             if(selectedTool == 3) {
                 // Rigorous select area removal
                 page.$music.find('.selection').remove();
+                $('.select-bar').css('display', 'block');    // Show column indicator again (selection mode)
                 
                 movingNotes = false;
             }
@@ -885,7 +1094,8 @@ $(document).ready(function(){
             switch(selectedTool) {
                 case 1:     // Placing an elongated new note
                     if(finalTile.x >= tile.x) {
-                        putNote(tile.x, tile.y, 30+(30*(finalTile.x - tile.x)));
+                        putNote(tile.x, tile.y, 30+(30*(finalTile.x - tile.x)), true);
+                        setTimeout(tagViewableNotes, 250);
                     }
                     break;
                 case 3:     // Selecting notes (group all selected)
@@ -942,6 +1152,31 @@ $(document).ready(function(){
                 break;
             case 68:    // Drag
                 tools.eq(3).click();
+                break;
+                
+            // Other
+            case 16:    // SHIFT
+                keys.SHIFT = true;
+                break;
+            case 17:    // CTRL
+                keys.CTRL = true;
+                break;
+            case 67:    // C
+                copyNotes();
+                break;
+            case 86:    // V
+                pasteNotes();
+                break;
+        }
+    });
+    
+    $(document).on('keyup', function(e){
+        switch(e.which) {
+            case 16:    // SHIFT
+                keys.SHIFT = false;
+                break;
+            case 17:    // CTRL
+                keys.CTRL = false;
                 break;
         }
     });

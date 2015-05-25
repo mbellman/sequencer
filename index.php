@@ -29,7 +29,9 @@
                     <div class="piano"></div>
 
                     <!-- Music roll -->
-                    <div class="music"></div>
+                    <div class="music">
+                        <div class="select-bar"></div>  <!-- Visible only in selection mode -->
+                    </div>
                 </div>
             </div>
         </main>
