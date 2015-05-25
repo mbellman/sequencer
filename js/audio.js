@@ -1,6 +1,8 @@
 // -- Sound data structure -- //
 
-// Constructors
+/**
+ * Full audio sequence constructor
+ */
 function Sequence() {
     this.channel = [];
     this.tempo = 180;       // In BPM, where four 16th notes constitute a single beat
@@ -73,6 +75,9 @@ function Sequence() {
     }
 }
 
+/**
+ * Constructor for a single-instrument audio data channel
+ */
 function Channel(_instrument) {
     this.instrument = _instrument;
     this.notes = [];
@@ -89,6 +94,9 @@ function Channel(_instrument) {
     }
 }
 
+/**
+ * Individual note constructor
+ */
 function Note(_pitch, _time, _duration) {
     this.pitch    = _pitch;
     this.time     = _time;
@@ -104,16 +112,19 @@ function Note(_pitch, _time, _duration) {
 // -- Web Audio API Tools -- //
 // ------------------------- //
 var audioCtx;
+var gainNode;
 var audioActive = false;
 
-window.audioContext = (window.audioContext || window.webkitAudioContext);
+var oscillators = new OscillatorBank();
+
+var AudioContext = (window.AudioContext || window.webkitAudioContext);
 
 function refreshAudioContext() {
     if(audioActive) {
-        audioCtx.close();
+        closeAudioContext();
     }
 
-    audioCtx = new window.audioContext();
+    audioCtx = new AudioContext();
     gainNode = audioCtx.createGain();
     gainNode.gain.value = 1/3;
     
@@ -122,7 +133,11 @@ function refreshAudioContext() {
 
 function closeAudioContext() {
     if(audioActive) {
-        audioCtx.close();
+        oscillators.dispose();  // Stop all registered active oscillators (support for browsers without AudioContext.close())
+        try {
+            // Destroy audio context if possible
+            audioCtx.close();
+        } catch(e) {}
         audioActive = false;
     }
 }
@@ -145,6 +160,32 @@ var frequency = function(key) {
     return Math.pow(tuningConst, key-49) * 440;
 }
 
+/**
+ * Container/disposer for connected oscillators
+ */
+function OscillatorBank() {
+    this.data = [];
+    this.total = 0;
+}
+
+OscillatorBank.prototype.register = function(oscillator) {
+    this.data.push(oscillator);
+    this.total = this.data.length;
+}
+
+OscillatorBank.prototype.dispose = function() {
+    for(var d = 0 ; d < this.total ; d++) {
+        this.data[d].dispose();
+    }
+    
+    this.data.length = 0;
+    this.total = 0;
+}
+
+
+/**
+ * Constructor for oscillators
+ */
 function Oscillator(_pitch, _startTime, _endTime) {
     this.object    = null;
     this.wave      = 'square';
@@ -171,6 +212,8 @@ function Oscillator(_pitch, _startTime, _endTime) {
         if(this.endTime != null) {
             this.object.stop(this.endTime);
         }
+        
+        oscillators.register(this);
     }
     
     function bindEnd() {
