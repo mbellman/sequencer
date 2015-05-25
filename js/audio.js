@@ -50,6 +50,7 @@ function Sequence() {
                     
                     if(note.time + note.duration > lastTime) {
                         // Currently the farthest note in the sequence
+                        lastTime = note.time + note.duration;
                         lastNote = oscillator;
                     }
                 }
