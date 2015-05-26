@@ -172,6 +172,7 @@ main .sequencer .content .piano .key {
     border-bottom: 1px solid #BBB;
     border-top-right-radius: 5px;
     border-bottom-right-radius: 5px;
+    background: -webkit-linear-gradient(top, #DDD 0%,#FFF 10%,#FFF 90%,#DDD 100%);
     background: linear-gradient(to bottom, #DDD 0%,#FFF 10%,#FFF 90%,#DDD 100%);
     cursor: pointer;
 }
@@ -182,6 +183,7 @@ main .sequencer .content .piano .key:nth-child(1) {
 
 main .sequencer .content .piano .key.black {
     border-right: 1px solid #000;
+    background: -webkit-linear-gradient(top, #666 0%,#333 10%,#333 90%,#666 100%);
     background: linear-gradient(to bottom, #666 0%,#333 10%,#333 90%,#666 100%);
 }
 
