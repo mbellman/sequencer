@@ -257,5 +257,7 @@ main .sequencer .content .music .select-bar {
     display: none;
     position: absolute;
     width: 15px;
+    top: 0;
+    bottom: 0;
     background-color: rgba(0,0,0,0.075);
 }

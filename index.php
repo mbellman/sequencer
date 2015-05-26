@@ -10,6 +10,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 
         <script src="js/jquery.min.js"></script>
+        <script src="js/jquery.mousewheel.min.js"></script>
         <script src="js/audio.js"></script>
     </head>
 

@@ -670,7 +670,11 @@ function resetNoteGrab()   { noteGrab = false; }
 
 $(document).ready(function(){
 
+    // Build UI layout
     generateUI();
+
+    
+    /** --- Event handlers/UI system --- **/
 
     // Show dropdown menu
     $('.nav').click(function(){
@@ -706,7 +710,7 @@ $(document).ready(function(){
         var key = $(this);
 
         var note = parseInt(key.attr('data-key'));
-        var pSound = playPreview(frequency(88-note), true);
+        var pSound = WebAudio.tone(frequency(88-note), true);
         
         pianoPreview = true;
         
@@ -724,7 +728,7 @@ $(document).ready(function(){
             var key = $(this);
             
             var note = parseInt(key.attr('data-key'));
-            var pSound = playPreview(frequency(88-note), true);
+            var pSound = WebAudio.tone(frequency(88-note), true);
             
             page.$body.on('mouseup', function(){
                 page.$body.on('mouseup');
@@ -749,7 +753,7 @@ $(document).ready(function(){
             switch(selectedTool) {
                 case 1:     // Placing a new note
                     putNote(tile.x, tile.y, 30, true);
-                    playPreview(frequency(88-tile.y), false);
+                    WebAudio.tone(frequency(88-tile.y), false);
                     setTimeout(tagViewableNotes, 250);
                     break;
             }
@@ -771,11 +775,7 @@ $(document).ready(function(){
     page.$music.on('mousemove', function(e){
         // Update focused column position (even if it's not necessarily visible)
         var tileX = getTile(e.clientX, e.clientY).x;
-        $('.select-bar').css({
-            'top'    : Math.abs(roll.scroll.y) + 'px',
-            'left'   : 8 + tileX*30 + 'px',
-            'height' : page.height + 'px'
-        });
+        $('.select-bar').css('left', 8 + tileX*30 + 'px');
     });
 
     // Hovering over a note - preparing for note interactions
@@ -836,6 +836,8 @@ $(document).ready(function(){
     // Note manipulation
     $(document).on('mousedown', '.music .note', function(e){
         if(!toolbarActive && noteAction && selectedTool == 1) {
+            // Dragging or stretching a note (processed
+            // by the mousemove handler below)
             var el = $(this);
             var note = {
                 x    : el.offset().left,
@@ -848,7 +850,7 @@ $(document).ready(function(){
             note.tileX = Math.round( parseInt(el.css('left'))/30 );
             note.tileY = Math.round( parseInt(el.css('top'))/30 );
             
-            playPreview(frequency(88-note.data.pitch), false);
+            WebAudio.tone(frequency(88-note.data.pitch), false);
 
             clearTimeout(grabTimer);
             noteGrab = true;
@@ -879,7 +881,7 @@ $(document).ready(function(){
                         }
 
                         if(newPitch != note.data.pitch && newPitch >= 0 && newPitch <= 88) {
-                            playPreview(frequency(88-newPitch), false);
+                            WebAudio.tone(frequency(88-newPitch), false);
                             note.data.pitch = newPitch;
                             el.css('top', newTop + 'px');
                         }
@@ -907,10 +909,12 @@ $(document).ready(function(){
         }
         
         if(!toolbarActive && selectedTool == 2) {
+            // Erasing a single note via click
             eraseNote($(this));
         }
         
         if(!toolbarActive && selectedTool == 3 && keys.SHIFT) {
+            // Selecting an individual note via SHIFT-click
             notesSelected = true;
             noteAction = true;
             $(this).addClass('selected');
@@ -926,7 +930,7 @@ $(document).ready(function(){
             // over a note or directly manipulating it, do nothing.
             
             // If selection tool is active and we're manually
-            // selecting notes with SHIFT, do nothing.
+            // selecting single notes with SHIFT, do nothing.
             return;
         }
 
@@ -939,7 +943,7 @@ $(document).ready(function(){
         switch(selectedTool) {
             case 1:     // Placing a new note
                 var pNote  = putPreviewNote(tile.x, tile.y);
-                var pSound = playPreview(frequency(88-tile.y), true);
+                var pSound = WebAudio.tone(frequency(88-tile.y), true);
                 break;
             case 2:     // Erasing notes
                 erasing = true;
@@ -963,6 +967,8 @@ $(document).ready(function(){
                         h: 0
                     }
                 } else {
+                    // If we're performing a group movement
+                    // action, gear up the necessary values
                     movingNotes = true;
                     var updateTile = {x: tile.x, y: tile.y};      // Track movement of note group
                 }
@@ -1081,7 +1087,8 @@ $(document).ready(function(){
             
             if(!mouseDrag) {
                 // Mouse was not dragged after being held, so the
-                // action will be processed by a click handler
+                // action will be processed by the click handler
+                // (only really applies 
                 return;
             }
 
@@ -1181,13 +1188,33 @@ $(document).ready(function(){
         }
     });
     
-    generateSequence();
-    
-    $('.sequencer').css('opacity', '1');
+    $(document).on('mousewheel', function(e){
+        roll.scroll.x += e.deltaX*10;
+        roll.scroll.y += e.deltaY*10;
 
+        if(roll.scroll.x > 0) roll.scroll.x = 0;
+        if(roll.scroll.y > 0) roll.scroll.y = 0;
+        if(roll.scroll.y < -2640 + page.$sequencer.height()-35) roll.scroll.y = -2640 + page.$sequencer.height()-35;
+        
+        scrollMusicTo(roll.scroll.x, roll.scroll.y);
+    });
+
+    // Create new sequence data
+    generateSequence();
+
+    // Initialize Web Audio
+    WebAudio.init();
+    WebAudio.addNode('gainNode', WebAudio.context.createGain());
+    WebAudio.nodes.gainNode.gain.value = 1/3;
+    
+    // Mark initialization as done
     init = true;
 
+    // Bind resize handler/trigger resize
     page.$window.resize(handleResize).resize();
+
+    // Fade in
+    $('.sequencer').css('opacity', '1');
 });
 
 $.fn.scale = function(ratio) {
