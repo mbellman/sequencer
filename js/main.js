@@ -25,13 +25,16 @@ var activeChannel = 1;
 var selectedTool = 1;
 var selectedInstrument = 1;
 
-var pianoRoll = true;
-var extendedView = true;
+var pianoRoll = true;       // Viewing piano roll
+var extendedView = true;    // Viewing extended view
 
-var pianoPreview = false;
+var pianoPreview = false;   // Set to true on piano key mousedown so rollovers will play new tones (false on mouseup)
 
-var notesSelected = false;
-var movingNotes = false;
+var notesSelected = false;  // Group of notes selected
+var movingNotes = false;    // Moving notes around
+
+var playFollowOffset = 0;   // Defaults to about half of stage width; can be changed by dragging
+var playFollow = true;      // Have play start line follow the focused scroll point
 
 var keys = {
     SHIFT : false,
@@ -177,6 +180,14 @@ var tools = {
 
         'Channel 8 [8]' : function(){
         },
+    },
+
+    Playback : {
+        'Lock Start Line [L]' : function(){
+        },
+
+        'Jump to Start [J]' : function(){
+        }
     },
 
     Toggle  : {
@@ -646,14 +657,36 @@ function deleteNotes() {
     }
 }
 
+/**
+ * Changes scroll position
+ */
 function scrollMusicTo(x, y) {
     page.$piano.moveXY('0',      35+y + 'px');
     page.$music.moveXY(x + 'px', 35+y + 'px');
 
     clearTimeout(tagViewTimer);
     tagViewTimer = setTimeout(tagViewableNotes, 250);
+
+    updatePlayLine();
 }
 
+/**
+ * Have play line follow scroll position
+ * if [playFollow] is true
+ */
+function updatePlayLine() {
+    if(playFollow) {
+        var scrollX = $('.music').position().left - (pianoRoll ? 100 : 0);
+        var leftOffset = 30 * Math.floor( (Math.abs(scrollX) + playFollowOffset) / 30);
+
+        $('.play-bar').css('left', leftOffset + 'px');
+    }
+}
+
+/**
+ * Prevent music roll from being
+ * scrolled past the bottom edge
+ */
 function lockScrollBottom() {
     var limit = -1*(2640 - page.$sequencer.height())-35;
 
@@ -663,6 +696,10 @@ function lockScrollBottom() {
     }
 }
 
+
+
+// -----
+// Initialization
 function generateSequence() {
     sequence = new Sequence();
     sequence.build();
@@ -675,6 +712,7 @@ function startAudioContext() {
         WebAudio.nodes.gainNode.gain.value = 1/3;
     }
 }
+// -----
 
 // ---------------------------------------
 // -------------- DOM/Events -------------
@@ -1236,6 +1274,10 @@ $(document).ready(function(){
 
     // Bind resize handler/trigger resize
     page.$window.resize(handleResize).resize();
+
+    // Show playback start bar
+    playFollowOffset = (page.$sequencer.width()-100)/2;
+    $('.play-bar').css('left', 30 * Math.floor(playFollowOffset/30) + 'px');
 
     // Fade in
     $('.sequencer').css('opacity', '1');

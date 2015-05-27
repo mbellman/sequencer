@@ -203,6 +203,7 @@ main .sequencer .content .music {
     height: 2640px;
     background: url(../images/note-tile.png) top left repeat;
     background-size: 30px 30px;
+    z-index: 1;
 
     -ms-transform: translateX(100px);
     -o-transform: translateX(100px);
@@ -232,7 +233,7 @@ main .sequencer .content .music .note {
 }
 
 .note.stretch {
-    cursor: w-resize;
+    cursor: ew-resize;
 }
 
 .note.erase {
@@ -262,4 +263,13 @@ main .sequencer .content .music .select-bar {
     top: 0;
     bottom: 0;
     background-color: rgba(0,0,0,0.075);
+}
+
+main .sequencer .content .music .play-bar {
+    position: absolute;
+    width: 3px;
+    top: 0;
+    bottom: 0;
+    background: #CC5;
+    z-index: 4;
 }
