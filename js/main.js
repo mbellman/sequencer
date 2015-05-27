@@ -576,9 +576,9 @@ function shiftGroupXY(deltaX, deltaY) {
 function copyNotes() {
     if(selectedTool == 3 && $('.note.selected').length > 0) {
         roll.clipboard.length = 0;
-        
+
         var firstNoteX = -1;    // Temporary init value
-        
+
         $('.note.selected').each(function(){
             var el = $(this);
             note = {
@@ -587,7 +587,7 @@ function copyNotes() {
             };
 
             note.data = sequence.channel[note.channel-1].notes[note.id];
-            
+
             if(firstNoteX == -1) {
                 // Begin tracking note time positions
                 firstNoteX = note.data.time;
@@ -635,6 +635,17 @@ function pasteNotes() {
     }
 }
 
+/**
+ * Deletes a group of selected notes
+ */
+function deleteNotes() {
+    if(selectedTool == 3 && $('.note.selected').length > 0) {
+        $('.note.selected').each(function(){
+            eraseNote($(this));
+        });
+    }
+}
+
 function scrollMusicTo(x, y) {
     page.$piano.moveXY('0',      35+y + 'px');
     page.$music.moveXY(x + 'px', 35+y + 'px');
@@ -655,6 +666,14 @@ function lockScrollBottom() {
 function generateSequence() {
     sequence = new Sequence();
     sequence.build();
+}
+
+function startAudioContext() {
+    if(WebAudio.context == null) {
+        WebAudio.init();
+        WebAudio.addNode('gainNode', WebAudio.context.createGain());
+        WebAudio.nodes.gainNode.gain.value = 1/3;
+    }
 }
 
 // ---------------------------------------
@@ -694,6 +713,7 @@ $(document).ready(function(){
     // Remove nav dropdowns if clicking outside of nav area
     $('*').click(function(e){
         e.stopPropagation();
+
         if(!$(this).hasClass('nav') && !$(this).hasClass('item')) {
             toolbar.hideOtherDrops();
             activeDrop = -1;
@@ -732,12 +752,12 @@ $(document).ready(function(){
             
             page.$body.on('mouseup', function(){
                 page.$body.on('mouseup');
-                pSound.dispose();
+                if(!!pSound.dispose) pSound.dispose();
             });
 
             key.on('mouseup mouseleave', function(){
                 key.off('mouseup mouseleave');
-                pSound.dispose();
+                if(!!pSound.dispose) pSound.dispose();
             });
         }
     });
@@ -1071,7 +1091,7 @@ $(document).ready(function(){
             if(selectedTool == 1) {
                 // Removing preview note/stopping preview sound
                 pNote.remove();
-                pSound.dispose();
+                if(!!pSound.dispose) pSound.dispose();
             } else
             if(selectedTool == 2) {
                 // Stopping erasure
@@ -1084,7 +1104,7 @@ $(document).ready(function(){
                 
                 movingNotes = false;
             }
-            
+
             if(!mouseDrag) {
                 // Mouse was not dragged after being held, so the
                 // action will be processed by the click handler
@@ -1174,6 +1194,9 @@ $(document).ready(function(){
             case 86:    // V
                 pasteNotes();
                 break;
+            case 88:    // X
+                deleteNotes();
+                break;
         }
     });
     
@@ -1203,9 +1226,10 @@ $(document).ready(function(){
     generateSequence();
 
     // Initialize Web Audio
-    WebAudio.init();
-    WebAudio.addNode('gainNode', WebAudio.context.createGain());
-    WebAudio.nodes.gainNode.gain.value = 1/3;
+    page.$window.on('mousemove mousedown', function(){
+        page.$window.off('mousemove mousedown');
+        startAudioContext();
+    });
     
     // Mark initialization as done
     init = true;
