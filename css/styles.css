@@ -4,6 +4,13 @@ html, body {
 
 body {
     background: #0DF;
+
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }
 
 img {
@@ -174,6 +181,10 @@ main .sequencer .content .piano .key {
     border-bottom-right-radius: 5px;
     background: -webkit-linear-gradient(top, #DDD 0%,#FFF 10%,#FFF 90%,#DDD 100%);
     background: linear-gradient(to bottom, #DDD 0%,#FFF 10%,#FFF 90%,#DDD 100%);
+    font: 12px Arial;
+    color: #333;
+    text-align: right;
+    line-height: 29px;
     cursor: pointer;
 }
 
@@ -267,9 +278,11 @@ main .sequencer .content .music .select-bar {
 
 main .sequencer .content .music .play-bar {
     position: absolute;
-    width: 3px;
+    width: 5px;
     top: 0;
     bottom: 0;
-    background: #CC5;
+    left: 0;
+    background: #0F0;
     z-index: 4;
+    cursor: pointer;
 }

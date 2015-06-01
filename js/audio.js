@@ -58,11 +58,11 @@ function Sequence() {
             for(var n = 0 ; n < totalNotes ; n++) {
                 var note = notes[n];
 
-                if(!note.disposed) {
+                if(!note.disposed && note.time >= playOffset) {
                     var oscillator = new Oscillator(
                         frequency(88-note.pitch),
-                        this.tempoTime(note.time) + startTime + 0.1,
-                        this.tempoTime(note.time + note.duration) + startTime + 0.1
+                        this.tempoTime(note.time - playOffset) + startTime + 0.1,
+                        this.tempoTime(note.time + note.duration - playOffset) + startTime + 0.1
                     );
                     oscillator.connect();
 

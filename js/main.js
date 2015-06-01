@@ -33,8 +33,7 @@ var pianoPreview = false;   // Set to true on piano key mousedown so rollovers w
 var notesSelected = false;  // Group of notes selected
 var movingNotes = false;    // Moving notes around
 
-var playFollowOffset = 0;   // Defaults to about half of stage width; can be changed by dragging
-var playFollow = true;      // Have play start line follow the focused scroll point
+var playOffset = 0;         // Offset from which to start playing
 
 var keys = {
     SHIFT : false,
@@ -182,14 +181,6 @@ var tools = {
         },
     },
 
-    Playback : {
-        'Lock Start Line [L]' : function(){
-        },
-
-        'Jump to Start [J]' : function(){
-        }
-    },
-
     Toggle  : {
         'Piano Roll' : function() {
             if(pianoRoll) {
@@ -318,6 +309,7 @@ function generateUI() {
     
     // Building piano keys
     var blackKeys = [2, 4, 6, 9, 11];
+    var C = 7;
 
     for(var k = 0 ; k < 88 ; k++) {
         var key = $('<div/>', {
@@ -332,6 +324,12 @@ function generateUI() {
                 key.addClass('black');
                 break;
             }
+        }
+        
+        if(octaveKey == 0) {
+            // C note
+            key.text('C' + C);
+            C--;
         }
         
         page.$piano.append(key);
@@ -652,6 +650,7 @@ function pasteNotes() {
 function deleteNotes() {
     if(selectedTool == 3 && $('.note.selected').length > 0) {
         $('.note.selected').each(function(){
+            $(this).removeClass('selected');
             eraseNote($(this));
         });
     }
@@ -671,19 +670,6 @@ function scrollMusicTo(x, y) {
 }
 
 /**
- * Have play line follow scroll position
- * if [playFollow] is true
- */
-function updatePlayLine() {
-    if(playFollow) {
-        var scrollX = $('.music').position().left - (pianoRoll ? 100 : 0);
-        var leftOffset = 30 * Math.floor( (Math.abs(scrollX) + playFollowOffset) / 30);
-
-        $('.play-bar').css('left', leftOffset + 'px');
-    }
-}
-
-/**
  * Prevent music roll from being
  * scrolled past the bottom edge
  */
@@ -695,8 +681,6 @@ function lockScrollBottom() {
         page.$music.css('top', limit+35);
     }
 }
-
-
 
 // -----
 // Initialization
@@ -719,11 +703,13 @@ function startAudioContext() {
 var mouseDrag = false, dragTimer = null;
 var noteAction = false, noteActionTimer = null;
 var noteGrab = false, grabTimer = null;
+var playDrag = false, playDragTimer = null;
 var erasing = false;
 
 function resetMouseDrag()  { mouseDrag = false; }
 function resetNoteAction() { noteAction = false;}
 function resetNoteGrab()   { noteGrab = false; }
+function resetPlayDrag()   { playDrag = false; }
 
 $(document).ready(function(){
 
@@ -802,7 +788,7 @@ $(document).ready(function(){
 
     // Placing a single note
     page.$music.click(function(e){
-        if(!toolbarActive && !mouseDrag && !noteAction && !noteGrab) {
+        if(!toolbarActive && !mouseDrag && !noteAction && !noteGrab && !playDrag) {
             var mouseX = e.clientX;
             var mouseY = e.clientY;
 
@@ -1179,11 +1165,50 @@ $(document).ready(function(){
         });
     });
 
+    // Dragging play start line
+    $('.play-bar').on('mousedown', function(e){
+        if(toolbarActive) {
+            return;
+        }
+
+        e.stopPropagation();
+        
+        clearTimeout(playDragTimer);
+        playDrag = true;
+
+        var mouseX = e.clientX;
+        var newOffset = 30*playOffset;
+
+        page.$body.on('mousemove', function(e){
+            var deltaX = e.clientX - mouseX;
+
+            newOffset = 30*playOffset + 30*Math.round(deltaX/30);
+
+            if(newOffset > 0) {
+                $('.play-bar').css('left', newOffset-2 + 'px');
+            } else {
+                $('.play-bar').css('left', '0px');
+            }
+        });
+
+        page.$body.on('mouseup', function(e){
+            page.$body.off('mousemove mouseup');
+
+            playOffset = Math.floor(newOffset/30);
+
+            if(playOffset < 0) {
+                playOffset = 0;
+            }
+            
+            playDragTimer = setTimeout(resetPlayDrag, 200);
+        });
+    });
+
     // Prevent other default actions
     page.$body.on('mousedown', function(e){
         e.preventDefault();
     });
-    
+
     $(document).on('keydown', function(e){
         if(!init) {
             return;
@@ -1274,10 +1299,6 @@ $(document).ready(function(){
 
     // Bind resize handler/trigger resize
     page.$window.resize(handleResize).resize();
-
-    // Show playback start bar
-    playFollowOffset = (page.$sequencer.width()-100)/2;
-    $('.play-bar').css('left', 30 * Math.floor(playFollowOffset/30) + 'px');
 
     // Fade in
     $('.sequencer').css('opacity', '1');
