@@ -152,6 +152,16 @@ var tools = {
         },
 
         'Instruments' : function() {
+        },
+        
+        'br' : null,
+        
+        'Play from here [SPACE]' : function(){
+            focusPlayOffset();
+        },
+        
+        'Go to start [G]' : function(){
+            jumpToStart();
         }
     },
 
@@ -665,8 +675,6 @@ function scrollMusicTo(x, y) {
 
     clearTimeout(tagViewTimer);
     tagViewTimer = setTimeout(tagViewableNotes, 250);
-
-    updatePlayLine();
 }
 
 /**
@@ -680,6 +688,38 @@ function lockScrollBottom() {
         page.$piano.css('top', limit+35);
         page.$music.css('top', limit+35);
     }
+}
+
+/**
+ * Brings the play start bar into view (setting it
+ * as close to the beginning of the view as possible)
+ */
+function focusPlayOffset() {
+    var scrollX = Math.abs(roll.scroll.x);
+
+    var newOffset = Math.ceil(scrollX/30);
+    playOffset = newOffset;
+
+    if(playOffset > 0) {
+        $('.play-bar').css('left', (playOffset*30 - 2) + 'px');
+    } else {
+        playOffset = 0;
+        $('.play-bar').css('left', '0px');
+    }
+}
+
+/**
+ * Goes to the play start line
+ */
+function jumpToStart() {
+    margin = 0;
+
+    if(playOffset > 0) {
+        var margin = 2;
+    }
+
+    scrollMusicTo(-30*playOffset + margin, roll.scroll.y);
+    roll.scroll.x = -30*playOffset + margin;
 }
 
 // -----
@@ -824,7 +864,7 @@ $(document).ready(function(){
 
     // Hovering over a note - preparing for note interactions
     $(document).on('mouseenter', '.music .note', function(){
-        if(!toolbarActive) {
+        if(!toolbarActive && !playDrag) {
             var el = $(this);
 
             if(selectedTool == 1) {
@@ -862,7 +902,7 @@ $(document).ready(function(){
     
     // Mouse off the note - restoring normal functionality
     $(document).on('mouseleave', '.music .note', function(){
-        if(!toolbarActive && selectedTool == 1) {
+        if(!toolbarActive && !playDrag && selectedTool == 1) {
             if(!noteGrab && $('.preview-note').length == 0) {
                 // In notate mode, neither moving any notes nor
                 // creating new ones, so we remove the stretch
@@ -874,6 +914,7 @@ $(document).ready(function(){
         if(!$(this).hasClass('erased')) {
             $(this).css('opacity', '1.0').removeClass('stretch erase');
         }
+
         noteAction = false;
     });
     
@@ -1251,6 +1292,12 @@ $(document).ready(function(){
             case 17:    // CTRL
                 keys.CTRL = true;
                 break;
+            case 32:    // SPACE
+                focusPlayOffset();
+                break;
+            case 71:    // G
+                jumpToStart();
+                break;
             case 67:    // C
                 copyNotes();
                 break;
@@ -1284,6 +1331,10 @@ $(document).ready(function(){
         
         scrollMusicTo(roll.scroll.x, roll.scroll.y);
     });
+    
+    // Set music roll starting position (C5 at top)
+    scrollMusicTo(0, -24*30);
+    roll.scroll.y = -24*30;
 
     // Create new sequence data
     generateSequence();
