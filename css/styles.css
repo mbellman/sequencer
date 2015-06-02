@@ -150,6 +150,31 @@ main .sequencer .content .ui-dropdowns .nav-drop .break {
     margin: 2px 0 2px -1px;
 }
 
+main .sequencer .content .ui-bar .tempo-form,
+main .sequencer .content .ui-bar .instrument-select {
+    position: absolute;
+    top: 6px;
+    border: 1px solid #0CE;
+    border-radius: 3px;
+    padding: 0;
+    background: #FFF;
+    font: 14px Tahoma;
+    line-height: 20px;
+    z-index: 2;
+}
+
+main .sequencer .content .ui-bar .tempo-form {
+    right: 120px;
+    width: 40px;
+    height: 20px;
+    text-align: center;
+}
+
+main .sequencer .content .ui-bar .instrument-select {
+    height: 22px;
+    right: 20px;
+}
+
 main .sequencer .content .piano,
 main .sequencer .content .music {
     -ms-transition: -ms-transform 0.5s ease-in-out;
@@ -242,6 +267,7 @@ main .sequencer .content .music .preview-note {
 main .sequencer .content .music .note {
     position: absolute;
     height: 21px;
+    background: #0FF;
 }
 
 .note.stretch {
@@ -250,10 +276,6 @@ main .sequencer .content .music .note {
 
 .note.erase {
     background-color: rgba(255, 0, 0, 0.3) !important;
-}
-
-.note.square {
-    background: #0FF;
 }
 
 .note.selected {

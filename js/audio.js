@@ -4,6 +4,11 @@ function unixTime() {
 }
 
 // -- Sound data structure -- //
+var instruments = {
+    1 : 'square',
+    2 : 'sawtooth',
+    3 : 'triangle'
+}
 
 /**
  * Full audio sequence constructor
@@ -43,10 +48,10 @@ function Sequence() {
             return;
         }
 
-        this.playing   = true;
+        this.playing  = true;
         
         var startTime = WebAudio.context.currentTime;
-        var lastTime = 0;
+        var lastTime  = 0;
 
         var lastNote;           // Keep track of farthest notes based on [lastTime]
 
@@ -64,7 +69,7 @@ function Sequence() {
                         this.tempoTime(note.time - playOffset) + startTime + 0.1,
                         this.tempoTime(note.time + note.duration - playOffset) + startTime + 0.1
                     );
-                    oscillator.connect();
+                    oscillator.plays(instruments[channel.instrument]).connect();
 
                     if(lastTime < note.time + note.duration) {
                         // Tentatively mark this note as the last in the sequence
@@ -210,7 +215,7 @@ var WebAudio = {
                 this.context.currentTime,
                 (infinite ? null : WebAudio.context.currentTime+0.25)
             );
-            _oscillator.connect();
+            _oscillator.plays(instruments[selectedInstrument]).connect();
 
             return _oscillator;
         }
@@ -282,6 +287,7 @@ function Oscillator(_pitch, _startTime, _endTime) {
     this.endTime   = _endTime;
     
     this.create  = create;
+    this.plays   = plays;
     this.connect = connect;
     this.bindEnd = bindEnd;
     this.dispose = dispose;
@@ -298,6 +304,12 @@ function Oscillator(_pitch, _startTime, _endTime) {
             if(!!this.object.noteOn && !!this.object.noteOff)
                 this.object.type = '2';
         }
+    }
+
+    function plays(_wave) {
+        this.wave        = _wave;
+        this.object.type = this.wave;
+        return this;
     }
     
     function connect() {

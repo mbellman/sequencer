@@ -12,13 +12,6 @@ var page = {
     $music     : $('.music')
 }
 
-var instruments = {
-    1 : 'square',
-    2 : 'sawtooth',
-    3 : 'triangle',
-    4 : 'piano'
-}
-
 var sequence;
 
 var activeChannel = 1;
@@ -156,11 +149,17 @@ var tools = {
         
         'br' : null,
         
-        'Play from here [SPACE]' : function(){
+        'Start from here [BACKSPACE]' : function(){
             focusPlayOffset();
         },
-        
-        'Go to start [G]' : function(){
+
+        'Start from beginning [ENTER]' : function(){
+            roll.scroll.x = 0;
+            scrollMusicTo(0, roll.scroll.y);
+            focusPlayOffset();
+        },
+
+        'Jump to start [SPACE]' : function(){
             jumpToStart();
         }
     },
@@ -236,7 +235,7 @@ Toolbar.prototype.add = function(nav, text) {
     this.length++;
 }
 
-Toolbar.prototype.dropItem = function(nav, text, callback) {
+Toolbar.prototype.newDropItem = function(nav, text, callback) {
     if(typeof callback == 'function') {
         var item = $('<div/>', {
             class : 'item'
@@ -313,8 +312,26 @@ function generateUI() {
         toolbar.add(prop, key);
 
         for(var subKey in tools[key]) {
-            toolbar.dropItem(prop, subKey, tools[key][subKey]);
+            toolbar.newDropItem(prop, subKey, tools[key][subKey]);
         }
+    }
+    
+    // Building tempo/channel options
+    var tempo = $('<input/>', {
+        class     : 'tempo-form',
+        value     : '180',
+        maxlength : '3'
+    }).appendTo($('.ui-bar'));
+    
+    var instrument = $('<select/>', {
+        class : 'instrument-select'
+    }).appendTo($('.ui-bar'));
+
+    for(var i in instruments) {
+        var o = $('<option/>', {
+            value : i
+        }).text(instruments[i].charAt(0).toUpperCase() + instruments[i].slice(1));
+        o.appendTo(instrument);
     }
     
     // Building piano keys
@@ -417,7 +434,7 @@ function putNote(x, y, width, animate) {
         note.scale(0).css('opacity', '0');
     }
 
-    page.$music.append( note.addClass(instruments[selectedInstrument]) );
+    page.$music.append(note);
 
     note.delay(25).queue(function(){
         $(this).scale(1).css('opacity', '1');
@@ -787,6 +804,37 @@ $(document).ready(function(){
                 toolbarActive = false;
             }, 25);
         }
+    });
+    
+    // Editing tempo value
+    $(document).on('keydown', '.tempo-form', function(e){
+        if(!(e.which >= 48 && e.which <= 57) && (e.which != 37 && e.which != 39) && (e.which != 8)) {
+            return false;
+        }
+    }).on('keyup', '.tempo-form', function(){
+        var tempoValue = $(this).val();
+        
+        if(tempoValue != '') {
+            if(isNaN(tempoValue)) {
+                tempoValue = sequence.tempo;
+            } else {
+                if(tempoValue > 299) {
+                    tempoValue = 299;
+                    $(this).val(tempoValue);
+                } else if(tempoValue < 1) {
+                    tempoValue = 1;
+                    $(this).val(tempoValue);
+                }
+            }
+
+            sequence.tempo = tempoValue;
+        }
+    });
+
+    // Changing instrument
+    $(document).on('change', '.instrument-select', function(){
+        selectedInstrument = $('.instrument-select').val();
+        sequence.channel[activeChannel-1].instrument = selectedInstrument;
     });
     
     // Holding a piano key
@@ -1245,17 +1293,13 @@ $(document).ready(function(){
         });
     });
 
-    // Prevent other default actions
-    page.$body.on('mousedown', function(e){
-        e.preventDefault();
-    });
-
     $(document).on('keydown', function(e){
         if(!init) {
             return;
         }
 
         var tools = $('.ui-dropdowns .nav-drop').eq(1).find('.item');
+        var options = $('.ui-dropdowns .nav-drop').eq(2).find('.item');
         var channels = $('.ui-dropdowns .nav-drop').eq(3).find('.item');
         
         switch(e.which) {
@@ -1286,6 +1330,12 @@ $(document).ready(function(){
                 break;
                 
             // Other
+            case 8:     // BACKSPACE
+                options.eq(3).click();
+                break;
+            case 13:    // ENTER
+                options.eq(5).click();
+                break;
             case 16:    // SHIFT
                 keys.SHIFT = true;
                 break;
@@ -1293,10 +1343,7 @@ $(document).ready(function(){
                 keys.CTRL = true;
                 break;
             case 32:    // SPACE
-                focusPlayOffset();
-                break;
-            case 71:    // G
-                jumpToStart();
+                options.eq(4).click();
                 break;
             case 67:    // C
                 copyNotes();
