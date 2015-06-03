@@ -150,9 +150,31 @@ main .sequencer .content .ui-dropdowns .nav-drop .break {
     margin: 2px 0 2px -1px;
 }
 
-main .sequencer .content .ui-bar .tempo-form,
-main .sequencer .content .ui-bar .instrument-select {
+main .sequencer .content .ui-bar .tempo,
+main .sequencer .content .ui-bar .instrument {
     position: absolute;
+    top: 6px;
+    white-space: nowrap;
+    font: 12px Arial;
+    font-weight: bold;
+    color: #000;
+    z-index: 2;
+}
+
+main .sequencer .content .ui-bar .instrument #ch {
+    display: inline-block;
+}
+
+main .sequencer .content .ui-bar .tempo {
+    right: 180px;
+}
+
+main .sequencer .content .ui-bar .instrument {
+    right: 50px;
+}
+
+main .sequencer .content .ui-bar .tempo .tempo-form,
+main .sequencer .content .ui-bar .instrument .instrument-select {
     top: 6px;
     border: 1px solid #0CE;
     border-radius: 3px;
@@ -160,17 +182,16 @@ main .sequencer .content .ui-bar .instrument-select {
     background: #FFF;
     font: 14px Tahoma;
     line-height: 20px;
-    z-index: 2;
 }
 
-main .sequencer .content .ui-bar .tempo-form {
+main .sequencer .content .ui-bar .tempo .tempo-form {
     right: 120px;
     width: 40px;
     height: 20px;
     text-align: center;
 }
 
-main .sequencer .content .ui-bar .instrument-select {
+main .sequencer .content .ui-bar .instrument .instrument-select {
     height: 22px;
     right: 20px;
 }

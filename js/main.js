@@ -25,6 +25,8 @@ var pianoPreview = false;   // Set to true on piano key mousedown so rollovers w
 
 var notesSelected = false;  // Group of notes selected
 var movingNotes = false;    // Moving notes around
+var groupStretch = false;   // Stretching a group of notes
+var grabbedNote = null;     // Grabbed note of a selected group (jQ element)
 
 var playOffset = 0;         // Offset from which to start playing
 
@@ -317,15 +319,21 @@ function generateUI() {
     }
     
     // Building tempo/channel options
+    var tempoBox = $('<div/>', {class : 'tempo'});
+    var instrumentBox = $('<div/>', {class : 'instrument'});
+
+    tempoBox.text('BPM:').appendTo($('.ui-bar'));
+    instrumentBox.html('<div id="ch">Ch.1</div>').appendTo($('.ui-bar'));
+
     var tempo = $('<input/>', {
         class     : 'tempo-form',
         value     : '180',
         maxlength : '3'
-    }).appendTo($('.ui-bar'));
+    }).appendTo(tempoBox);
     
     var instrument = $('<select/>', {
         class : 'instrument-select'
-    }).appendTo($('.ui-bar'));
+    }).appendTo(instrumentBox);
 
     for(var i in instruments) {
         var o = $('<option/>', {
@@ -402,6 +410,17 @@ function getTile(mouseX, mouseY) {
     }
 }
 
+function activeNote(element) {
+    return element.hasClass('channel-' + activeChannel);
+}
+
+function getNoteData(element) {
+    var ch = parseInt(element.attr('data-channel'));
+    var id = parseInt(element.attr('data-note'));
+
+    return sequence.channel[ch-1].notes[id];
+}
+
 function putPreviewNote(x, y) {
     var pNote = $('<div/>', {
         class : 'preview-note',
@@ -453,8 +472,9 @@ function eraseNote(element) {
     element.addClass('erase erased');
     element.css('background-color', element.css('background-color'));   // Lock the erased state
 
+    var channel = parseInt(element.attr('data-channel'));
     var note = parseInt(element.attr('data-note'));
-    sequence.channel[activeChannel-1].erase(note);
+    sequence.channel[channel-1].erase(note);
 
     element.css('opacity', '0').scale(0.5).delay(550).queue(function(){
         $(this).dequeue();
@@ -544,7 +564,7 @@ function selectNotes(range) {
 }
 
 /**
- * Turns off selection mode
+ * Turns off selection UI features
  */
 function disableSelections() {
     $('.note').removeClass('selected');
@@ -557,13 +577,10 @@ function disableSelections() {
  */
 function noteDelta(element, deltaX, deltaY) {
     var note = {
-        channel : parseInt(element.attr('data-channel')),
-        id      : parseInt(element.attr('data-note')),
+        data    : getNoteData(element),
         dTime   : 0,
         dPitch  : 0
     }
-    
-    note.data = sequence.channel[note.channel-1].notes[note.id];
     
     note.dTime  = note.data.time + deltaX;
     note.dPitch = note.data.pitch + deltaY;
@@ -604,6 +621,17 @@ function shiftGroupXY(deltaX, deltaY) {
             'left' : newNote.data.time*30 + 'px'
         });
     });
+
+    // Determining a pitch to play for the
+    // grabbed note of a selected group
+    if(grabbedNote != null) {
+        var grabbedData = getNoteData(grabbedNote);
+        var gPitch = grabbedData.pitch;
+
+        if( Math.abs(deltaY) >= 1) {
+            WebAudio.tone(frequency(88-gPitch), false);
+        }
+    }
 }
 
 /**
@@ -618,11 +646,8 @@ function copyNotes() {
         $('.note.selected').each(function(){
             var el = $(this);
             note = {
-                channel : parseInt(el.attr('data-channel')),
-                id      : parseInt(el.attr('data-note'))
+                data : getNoteData(el)
             };
-
-            note.data = sequence.channel[note.channel-1].notes[note.id];
 
             if(firstNoteX == -1) {
                 // Begin tracking note time positions
@@ -915,21 +940,16 @@ $(document).ready(function(){
         if(!toolbarActive && !playDrag) {
             var el = $(this);
 
+            if(!activeNote(el)) {
+                return;
+            }
+
             if(selectedTool == 1) {
                 // Notate tool active; indicate
                 // note can be interacted with
                 el.css('opacity', '0.5');
-                var note = {x: el.offset().left, w: el.width()};
 
                 noteAction = true;
-
-                page.$body.on('mousemove', function(e){
-                    if((note.x + note.w) - e.clientX < 15) {
-                        el.addClass('stretch');
-                    } else {
-                        el.removeClass('stretch');
-                    }
-                });
             }
             
             if(selectedTool == 2) {
@@ -943,18 +963,57 @@ $(document).ready(function(){
             }
             
             if(selectedTool == 3 && notesSelected && el.hasClass('selected')) {
+                grabbedNote = $(this);
                 noteAction = true;
+            }
+
+            if(selectedTool == 1 || selectedTool == 3) {
+                // We'll check for stretch range if either
+                // the notate or selection tools are active
+                var note = {
+                    x: el.offset().left,
+                    w: el.width()
+                };
+
+                page.$body.on('mousemove', function(e){
+                    if((note.x + note.w) - e.clientX < 15) {
+                        // Within note stretch range
+                        el.addClass('stretch');
+
+                        if(selectedTool == 3) {
+                            groupStretch = true;
+                        }
+                    } else {
+                        // Out of note stretch range
+                        el.removeClass('stretch');
+
+                        if(selectedTool == 3) {
+                            groupStretch = false;
+                        }
+                    }
+                });
             }
         }
     });
     
     // Mouse off the note - restoring normal functionality
     $(document).on('mouseleave', '.music .note', function(){
-        if(!toolbarActive && !playDrag && selectedTool == 1) {
-            if(!noteGrab && $('.preview-note').length == 0) {
+        if(!toolbarActive && !playDrag) {
+            if(!activeNote($(this))) {
+                return;
+            }
+
+            if(selectedTool == 1 && !noteGrab && $('.preview-note').length == 0) {
                 // In notate mode, neither moving any notes nor
                 // creating new ones, so we remove the stretch
                 // indicator handler
+                page.$body.off('mousemove');
+            }
+
+            if(selectedTool == 3 && !noteGrab && !groupStretch && !movingNotes && $('.selection').length == 0) {
+                // In selection mode, not currently
+                // stretching or moving a group, or
+                // creating a selection area
                 page.$body.off('mousemove');
             }
         }
@@ -968,21 +1027,25 @@ $(document).ready(function(){
     
     // Note manipulation
     $(document).on('mousedown', '.music .note', function(e){
-        if(!toolbarActive && noteAction && selectedTool == 1) {
+        if(!toolbarActive && noteAction && (selectedTool == 1 || (selectedTool == 3 && groupStretch))) {
             // Dragging or stretching a note (processed
             // by the mousemove handler below)
             var el = $(this);
+
+            if(!activeNote(el)) {
+                return;
+            }
+
             var note = {
                 x    : el.offset().left,
                 y    : el.offset().top,
                 w    : el.width(),
-                id   : parseInt(el.attr('data-note'))
+                data : getNoteData(el)
             };
 
-            note.data  = sequence.channel[activeChannel-1].notes[note.id];
             note.tileX = Math.round( parseInt(el.css('left'))/30 );
             note.tileY = Math.round( parseInt(el.css('top'))/30 );
-            
+
             WebAudio.tone(frequency(88-note.data.pitch), false);
 
             clearTimeout(grabTimer);
@@ -999,6 +1062,11 @@ $(document).ready(function(){
 
                 switch(action) {
                     case 'move':    // Dragging the note around
+
+                        if(selectedTool == 3) {
+                            // Group movement is handled elsewhere
+                            return;
+                        }
                         
                         var tile = getTile(e.clientX, e.clientY);
 
@@ -1022,12 +1090,32 @@ $(document).ready(function(){
 
                     case 'stretch': // Changing the note's length
 
-                        var newLength   = note.w + Math.round(delta.x/30)*30;
-                        var newDuration = Math.round(newLength/30);
+                        if(selectedTool == 1) {
+                            // Only stretching one note
+                            var newLength   = note.w + Math.round(delta.x/30)*30;
+                            var newDuration = Math.round(newLength/30);
 
-                        if(newDuration != note.data.duration && newDuration >= 1) {
-                            note.data.duration = newDuration;
-                            el.width(newLength + 'px');
+                            if(newDuration != note.data.duration && newDuration >= 1) {
+                                note.data.duration = newDuration;
+                                el.width(newLength + 'px');
+                            }
+                        }
+
+                        if(selectedTool == 3) {
+                            // Stretching a group of notes
+                            var stretchLength = Math.round(delta.x/30)*30;
+                            var stretchDuration = Math.round(stretchLength/30);
+
+                            $('.note.selected').each(function(){
+                                var sNote = $(this);
+                                var sNoteData = getNoteData(sNote);
+                                var newDuration = sNoteData.duration + stretchDuration;
+
+                                if(newDuration >= 1) {
+                                    //sNoteData.duration = newDuration;
+                                    sNote.width(newDuration*30 + 'px');
+                                }
+                            });
                         }
 
                         break;
@@ -1038,6 +1126,18 @@ $(document).ready(function(){
                 page.$body.off('mousemove mouseup');
                 el.removeClass('stretch');
                 grabTimer = setTimeout(resetNoteGrab, 50);
+
+                if(selectedTool == 3) {
+                    // Finished stretching notes
+                    $('.note.selected').each(function(){
+                        var el = $(this);
+                        var sNoteData = getNoteData(el);
+
+                        sNoteData.duration = Math.round(el.width()/30);
+                    });
+
+                    groupStretch = false;
+                }
             });
         }
         
@@ -1056,14 +1156,15 @@ $(document).ready(function(){
 
     // Dragging along the music roll
     page.$music.on('mousedown', function(e){
-        if(toolbarActive || (selectedTool == 1 && (noteAction || noteGrab)) || (selectedTool == 3 && noteAction && keys.SHIFT)) {
+        if(toolbarActive || (selectedTool == 1 && (noteAction || noteGrab)) || (selectedTool == 3 && (groupStretch || (noteAction && keys.SHIFT)))) {
             // Toolbar being open means we do nothing.
 
             // If notate tool is active and we're already hovering
             // over a note or directly manipulating it, do nothing.
             
             // If selection tool is active and we're manually
-            // selecting single notes with SHIFT, do nothing.
+            // selecting single notes with SHIFT, or we're
+            // stretching a group of notes, do nothing here.
             return;
         }
 
@@ -1081,7 +1182,7 @@ $(document).ready(function(){
             case 2:     // Erasing notes
                 erasing = true;
                 break;
-            case 3:     // Starting an area selection
+            case 3:     // Starting an area selection, or preparing to move/stretch a group
 
                 $('.select-bar').css('display', 'none');    // Temporarily disable column indicator (selection mode)
 
