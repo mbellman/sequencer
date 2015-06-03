@@ -18,17 +18,20 @@ var activeChannel = 1;
 var selectedTool = 1;
 var selectedInstrument = 1;
 
-var pianoRoll = true;       // Viewing piano roll
-var extendedView = true;    // Viewing extended view
+var pianoRoll = true;           // Viewing piano roll
+var extendedView = true;        // Viewing extended view
 
-var pianoPreview = false;   // Set to true on piano key mousedown so rollovers will play new tones (false on mouseup)
+var pianoPreview = false;       // Set to true on piano key mousedown so rollovers will play new tones (false on mouseup)
 
-var notesSelected = false;  // Group of notes selected
-var movingNotes = false;    // Moving notes around
-var groupStretch = false;   // Stretching a group of notes
-var grabbedNote = null;     // Grabbed note of a selected group (jQ element)
+var notesSelected = false;      // Group of notes selected
+var movingNotes = false;        // Moving notes around
 
-var playOffset = 0;         // Offset from which to start playing
+var groupStretch = false;       // Able to stretch a group of notes (on mousedown)
+var stretchingNotes = false;    // Actively stretching a group of notes
+
+var grabbedNote = null;         // Grabbed note of a selected group (jQ element)
+
+var playOffset = 0;             // Offset from which to start playing
 
 var keys = {
     SHIFT : false,
@@ -998,6 +1001,7 @@ $(document).ready(function(){
     
     // Mouse off the note - restoring normal functionality
     $(document).on('mouseleave', '.music .note', function(){
+        console.log('huh');
         if(!toolbarActive && !playDrag) {
             if(!activeNote($(this))) {
                 return;
@@ -1010,11 +1014,16 @@ $(document).ready(function(){
                 page.$body.off('mousemove');
             }
 
-            if(selectedTool == 3 && !noteGrab && !groupStretch && !movingNotes && $('.selection').length == 0) {
+            if(selectedTool == 3 && !noteGrab && !stretchingNotes && !movingNotes) {
                 // In selection mode, not currently
-                // stretching or moving a group, or
-                // creating a selection area
-                page.$body.off('mousemove');
+                // stretching or moving a group
+                groupStretch = false;
+
+                if($('.selection').length == 0) {
+                    // Only remove the mousemove handler
+                    // if not doing an area selection
+                    page.$body.off('mousemove');
+                }
             }
         }
         
@@ -1055,6 +1064,10 @@ $(document).ready(function(){
             var delta = {x: 0, y: 0}
             var xTileDiff = getTile(e.clientX, e.clientY).x - note.tileX;
             var action = ((note.x + note.w) - mouse.x < 15) ? 'stretch' : 'move';
+
+            if(selectedTool == 3 && action == 'stretch') {
+                stretchingNotes = true;
+            }
 
             page.$body.on('mousemove', function(e){
                 delta.x = e.clientX - mouse.x;
@@ -1137,6 +1150,7 @@ $(document).ready(function(){
                     });
 
                     groupStretch = false;
+                    stretchingNotes = false;
                 }
             });
         }
@@ -1317,6 +1331,7 @@ $(document).ready(function(){
                 $('.select-bar').css('display', 'block');    // Show column indicator again (selection mode)
                 
                 movingNotes = false;
+                groupStretch = false;   // Catch for shift-drag over right edge of a note
             }
 
             if(!mouseDrag) {
