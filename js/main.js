@@ -1433,9 +1433,10 @@ $(document).ready(function(){
             // Other
             case 8:     // BACKSPACE
                 options.eq(3).click();
+                return false;
                 break;
             case 13:    // ENTER
-                options.eq(5).click();
+                options.eq(4).click();
                 break;
             case 16:    // SHIFT
                 keys.SHIFT = true;
@@ -1444,7 +1445,7 @@ $(document).ready(function(){
                 keys.CTRL = true;
                 break;
             case 32:    // SPACE
-                options.eq(4).click();
+                options.eq(5).click();
                 break;
             case 67:    // C
                 copyNotes();
