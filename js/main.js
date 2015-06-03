@@ -1001,7 +1001,6 @@ $(document).ready(function(){
     
     // Mouse off the note - restoring normal functionality
     $(document).on('mouseleave', '.music .note', function(){
-        console.log('huh');
         if(!toolbarActive && !playDrag) {
             if(!activeNote($(this))) {
                 return;
