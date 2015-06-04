@@ -197,7 +197,8 @@ main .sequencer .content .ui-bar .instrument .instrument-select {
 }
 
 main .sequencer .content .piano,
-main .sequencer .content .music {
+main .sequencer .content .music,
+main .sequencer .content .extended {
     -ms-transition: -ms-transform 0.5s ease-in-out;
     -o-transition: -o-transform 0.5s ease-in-out;
     -moz-transition: -moz-transform 0.5s ease-in-out;
@@ -251,6 +252,23 @@ main .sequencer .content .piano .key:not(.black):hover {
 
 main .sequencer .content .piano .key.black:hover {
     background: #000;
+}
+
+main .sequencer .content .extended {
+    position: absolute;
+    width: 100%;
+    height: 176px;
+    bottom: 0;
+    border: 0;
+    border-top: 1px solid #000;
+    background: #FFF;
+    z-index: 3;
+}
+
+main .sequencer .content .extended .view {
+    position: absolute;
+    width: 100%;
+    height: 100%;
 }
 
 main .sequencer .content .music {

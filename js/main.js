@@ -9,6 +9,7 @@ var page = {
     $body      : $('body'),
     $sequencer : $('.sequencer .content'),
     $piano     : $('.piano'),
+    $render    : $('canvas.view'),
     $music     : $('.music')
 }
 
@@ -48,6 +49,9 @@ function handleResize() {
         updateCorners();
         toolbar.resize();
         lockScrollBottom();
+
+        View.canvas.width  = page.$render.width();
+        View.canvas.height = page.$render.height();
     }
 }
 
@@ -209,6 +213,13 @@ var tools = {
         },
 
         'Extended View' : function() {
+            if(extendedView) {
+                extendedView = false;
+                page.$render.parent().translateXY('0px', '180px');
+            } else {
+                extendedView = true;
+                page.$render.parent().translateXY('0px', '0px');
+            }
         },
 
         'Measure Breaks' : function() {
@@ -635,6 +646,9 @@ function shiftGroupXY(deltaX, deltaY) {
             WebAudio.tone(frequency(88-gPitch), false);
         }
     }
+
+    // RENDER ACTION
+    View.render.all();
 }
 
 /**
@@ -708,6 +722,9 @@ function deleteNotes() {
             $(this).removeClass('selected');
             eraseNote($(this));
         });
+
+        // RENDER ACTION
+        View.render.all();
     }
 }
 
@@ -766,6 +783,58 @@ function jumpToStart() {
     scrollMusicTo(-30*playOffset + margin, roll.scroll.y);
     roll.scroll.x = -30*playOffset + margin;
 }
+
+
+// -----
+// Extended view rendering
+var View = {
+    canvas : page.$render[0],
+    ctx    : page.$render[0].getContext('2d'),
+
+    xScale : 2,
+
+    colors : ['#0FF', '#0FF', '#0FF', '#0FF', '#0FF', '#0FF', '#0FF', '#0FF'],
+
+    render : {}
+};
+
+View.clear = function() {
+    View.ctx.clearRect(
+        0,
+        0,
+        View.canvas.width,
+        View.canvas.height
+    );
+}
+
+View.render.note = function(x, y, length, channel) {
+    View.ctx.beginPath();
+    View.ctx.rect(x, y, length, 2);
+    View.ctx.fillStyle = View.colors[channel];
+    View.ctx.fill();
+}
+
+View.render.all = function() {
+    View.clear();
+
+    for(c in sequence.channel) {
+        var channel = sequence.channel[c];
+
+        for(n in channel.notes) {
+            var note = channel.notes[n];
+
+            if(!note.disposed) {
+                View.render.note(
+                    note.time     * View.xScale,
+                    note.pitch    * 2,
+                    note.duration * View.xScale,
+                    c
+                );
+            }
+        }
+    }
+}
+
 
 // -----
 // Initialization
@@ -915,6 +984,9 @@ $(document).ready(function(){
                     putNote(tile.x, tile.y, 30, true);
                     WebAudio.tone(frequency(88-tile.y), false);
                     setTimeout(tagViewableNotes, 250);
+
+                    // RENDER ACTION
+                    View.render.all();
                     break;
             }
         }
@@ -962,6 +1034,9 @@ $(document).ready(function(){
                 if(erasing) {
                     // Removing note
                     eraseNote(el);
+
+                    // RENDER ACTION
+                    View.render.all();
                 }
             }
             
@@ -1097,6 +1172,9 @@ $(document).ready(function(){
                             WebAudio.tone(frequency(88-newPitch), false);
                             note.data.pitch = newPitch;
                             el.css('top', newTop + 'px');
+
+                            // RENDER ACTION
+                            View.render.all();
                         }
                         break;
 
@@ -1110,6 +1188,9 @@ $(document).ready(function(){
                             if(newDuration != note.data.duration && newDuration >= 1) {
                                 note.data.duration = newDuration;
                                 el.width(newLength + 'px');
+
+                                // RENDER ACTION
+                                View.render.all();
                             }
                         }
 
@@ -1124,7 +1205,6 @@ $(document).ready(function(){
                                 var newDuration = sNoteData.duration + stretchDuration;
 
                                 if(newDuration >= 1) {
-                                    //sNoteData.duration = newDuration;
                                     sNote.width(newDuration*30 + 'px');
                                 }
                             });
@@ -1150,6 +1230,9 @@ $(document).ready(function(){
 
                     groupStretch = false;
                     stretchingNotes = false;
+
+                    // RENDER ACTION
+                    View.render.all();
                 }
             });
         }
@@ -1351,6 +1434,9 @@ $(document).ready(function(){
                     if(finalTile.x >= tile.x) {
                         putNote(tile.x, tile.y, 30+(30*(finalTile.x - tile.x)), true);
                         setTimeout(tagViewableNotes, 250);
+
+                        // RENDER ACTION
+                        View.render.all();
                     }
                     break;
                 case 3:     // Selecting notes (group all selected)

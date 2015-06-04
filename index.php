@@ -34,6 +34,13 @@
                         <div class="select-bar"></div>  <!-- Visible only in selection mode -->
                         <div class="play-bar"></div>    <!-- Indicator for start of playback (scrolls with view) -->
                     </div>
+
+                    <!-- Extended view (toggleable) -->
+                    <div class="extended">
+                        <canvas class="view"></canvas>
+                        <div class="mini-playbar"></div>
+                        <div class="mini-frame"></div>
+                    </div>
                 </div>
             </div>
         </main>
