@@ -825,8 +825,6 @@ function Canvas() {
 Canvas.prototype.load = function(_jQueryCanvas) {
     this.canvas  = _jQueryCanvas[0];
     this.context = this.canvas.getContext('2d');
-
-    console.log(this.context);
 }
 
 /**
@@ -918,13 +916,13 @@ var ViewCover = {
     lastHeight : 0,
 
     fill : function() {
-        coverCanvas.rectangle( 0, 0, page.$render2.width(), page.$render2.height(), this.fillColor);
+        coverCanvas.rectangle( 0, 0, page.$render2.width(), page.$render2.height(), this.fillColor );
     },
 
     render : function() {
         // Dark overlay (only fill in the last window region)
         var pad = 5;
-        coverCanvas.rectangle( this.lastX-pad, this.lastY-pad, this.lastWidth+pad*2, this.lastHeight+pad*2, this.fillColor);
+        coverCanvas.rectangle( this.lastX-pad, this.lastY-pad, this.lastWidth+pad*2, this.lastHeight+pad*2, this.fillColor );
 
         // Window region
         var rollPos = page.$music.position();
@@ -943,7 +941,7 @@ var ViewCover = {
         this.lastHeight = h;
 
         // Draw window
-        coverCanvas.rectangle( this.lastX, this.lastY, this.lastWidth, this.lastHeight, 'blank');
+        coverCanvas.rectangle( this.lastX, this.lastY, this.lastWidth, this.lastHeight, 'blank' );
 
         moveViewFrame();
     }
