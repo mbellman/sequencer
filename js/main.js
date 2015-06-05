@@ -845,20 +845,22 @@ Canvas.prototype.clear = function() {
  * Draw a rectangle on the canvas
  */
 Canvas.prototype.rectangle = function(_x, _y, _width, _height, _color) {
-    if(_color != 'blank') {
-        // Drawing a normal box with a color fill
-        this.context.beginPath();
-        this.context.rect(_x, _y, _width, _height);
-        this.context.fillStyle = _color;
-        this.context.fill();
-    } else {
-        // Clearing an area defined by the region
-        this.context.clearRect(
-            _x,
-            _y,
-            _width,
-            _height
-        );
+    if(this.context != null) {
+        if(_color != 'blank') {
+            // Drawing a normal box with a color fill
+            this.context.beginPath();
+            this.context.rect(_x, _y, _width, _height);
+            this.context.fillStyle = _color;
+            this.context.fill();
+        } else {
+            // Clearing an area defined by the region
+            this.context.clearRect(
+                _x,
+                _y,
+                _width,
+                _height
+            );
+        }
     }
 }
 
@@ -1419,6 +1421,9 @@ $(document).ready(function(){
         if(!toolbarActive && selectedTool == 2) {
             // Erasing a single note via click
             eraseNote($(this));
+
+            // RENDER ACTION
+            View.render.all();
         }
         
         if(!toolbarActive && selectedTool == 3 && keys.SHIFT) {
