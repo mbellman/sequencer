@@ -260,15 +260,36 @@ main .sequencer .content .extended {
     height: 176px;
     bottom: 0;
     border: 0;
-    border-top: 1px solid #000;
+    border-top: 2px solid #0CE;
     background: #FFF;
     z-index: 3;
 }
 
-main .sequencer .content .extended .view {
+main .sequencer .content .extended canvas.view,
+main .sequencer .content .extended canvas.cover {
     position: absolute;
     width: 100%;
     height: 100%;
+}
+
+main .sequencer .content .extended canvas.cover {
+    opacity: 0.3;
+}
+
+main .sequencer .content .extended .mini-frame {
+    position: absolute;
+    border: 1px solid rgba(0,0,0,0.4);
+    cursor: move;
+    cursor: all-scroll;
+}
+
+main .sequencer .content .extended .mini-playbar {
+    position: absolute;
+    width: 1px;
+    height: 176px;
+    top: 0;
+    left: 0;
+    background: #0F0;
 }
 
 main .sequencer .content .music {

@@ -10,6 +10,8 @@ var page = {
     $sequencer : $('.sequencer .content'),
     $piano     : $('.piano'),
     $render    : $('canvas.view'),
+    $render2   : $('canvas.cover'),
+    $ViewFrame : $('.mini-frame'),
     $music     : $('.music')
 }
 
@@ -52,6 +54,14 @@ function handleResize() {
 
         View.canvas.width  = page.$render.width();
         View.canvas.height = page.$render.height();
+
+        ViewCover.canvas.width  = page.$render2.width();
+        ViewCover.canvas.height = page.$render2.height();
+
+        View.render.all();
+
+        ViewCover.fill();
+        ViewCover.render();
     }
 }
 
@@ -81,6 +91,7 @@ function updateCorners() {
 var toolbar;
 var toolbarActive = false;
 var activeDrop = -1;
+var toggleRenderTimer;
 
 var tools = {
     File    : {
@@ -210,6 +221,12 @@ var tools = {
                 page.$piano.translateXY('0px', '0px');
                 page.$music.translateXY('100px', '0px');
             }
+
+            clearTimeout(toggleRenderTimer);
+            toggleRenderTimer = setTimeout(function(){
+                ViewCover.fill();
+                ViewCover.render();
+            }, 750);
         },
 
         'Extended View' : function() {
@@ -737,6 +754,9 @@ function scrollMusicTo(x, y) {
 
     clearTimeout(tagViewTimer);
     tagViewTimer = setTimeout(tagViewableNotes, 250);
+
+    // Update extended view local area position
+    ViewCover.render();
 }
 
 /**
@@ -768,6 +788,8 @@ function focusPlayOffset() {
         playOffset = 0;
         $('.play-bar').css('left', '0px');
     }
+
+    $('.mini-playbar').css('left', $('.play-bar').position().left * viewScale + 'px');
 }
 
 /**
@@ -785,37 +807,82 @@ function jumpToStart() {
 }
 
 
-// -----
-// Extended view rendering
+// ------------
+// Canvas tools
+
+/**
+ * Canvas object constructor
+ */
+function Canvas() {
+    this.canvas;
+    this.context;
+}
+
+/**
+ * Set up the canvas DOM element and context
+ * via a canvas jQuery selector
+ */
+Canvas.prototype.load = function(_jQueryCanvas) {
+    this.canvas  = _jQueryCanvas[0];
+    this.context = this.canvas.getContext('2d');
+
+    console.log(this.context);
+}
+
+/**
+ * Clear the canvas
+ */
+Canvas.prototype.clear = function() {
+    if(this.context != null) {
+        this.context.clearRect(
+            0,
+            0,
+            this.canvas.width,
+            this.canvas.height
+        );
+    }
+}
+
+/**
+ * Draw a rectangle on the canvas
+ */
+Canvas.prototype.rectangle = function(_x, _y, _width, _height, _color) {
+    if(_color != 'blank') {
+        // Drawing a normal box with a color fill
+        this.context.beginPath();
+        this.context.rect(_x, _y, _width, _height);
+        this.context.fillStyle = _color;
+        this.context.fill();
+    } else {
+        // Clearing an area defined by the region
+        this.context.clearRect(
+            _x,
+            _y,
+            _width,
+            _height
+        );
+    }
+}
+
+
+/* --- Extended view --- */
+var viewScale = 1/15;
+
+var viewCanvas = new Canvas();
+viewCanvas.load( page.$render );
+
 var View = {
-    canvas : page.$render[0],
-    ctx    : page.$render[0].getContext('2d'),
-
-    xScale : 2,
-
+    canvas : viewCanvas.canvas,
     colors : ['#0FF', '#0FF', '#0FF', '#0FF', '#0FF', '#0FF', '#0FF', '#0FF'],
-
     render : {}
 };
 
-View.clear = function() {
-    View.ctx.clearRect(
-        0,
-        0,
-        View.canvas.width,
-        View.canvas.height
-    );
-}
-
 View.render.note = function(x, y, length, channel) {
-    View.ctx.beginPath();
-    View.ctx.rect(x, y, length, 2);
-    View.ctx.fillStyle = View.colors[channel];
-    View.ctx.fill();
+    viewCanvas.rectangle( x, y, length, 2, View.colors[channel]);
 }
 
 View.render.all = function() {
-    View.clear();
+    viewCanvas.clear();
 
     for(c in sequence.channel) {
         var channel = sequence.channel[c];
@@ -825,9 +892,9 @@ View.render.all = function() {
 
             if(!note.disposed) {
                 View.render.note(
-                    note.time     * View.xScale,
+                    note.time     * 2,
                     note.pitch    * 2,
-                    note.duration * View.xScale,
+                    note.duration * 2,
                     c
                 );
             }
@@ -835,6 +902,77 @@ View.render.all = function() {
     }
 }
 
+/* --- Extended view darker overlay (with local view box) --- */
+var coverCanvas = new Canvas();
+
+coverCanvas.load( page.$render2 );
+
+var ViewCover = {
+    canvas : coverCanvas.canvas,
+
+    fillColor  : '#08B',
+
+    lastX      : 0,
+    lastY      : 0,
+    lastWidth  : 0,
+    lastHeight : 0,
+
+    fill : function() {
+        coverCanvas.rectangle( 0, 0, page.$render2.width(), page.$render2.height(), this.fillColor);
+    },
+
+    render : function() {
+        // Dark overlay (only fill in the last window region)
+        var pad = 5;
+        coverCanvas.rectangle( this.lastX-pad, this.lastY-pad, this.lastWidth+pad*2, this.lastHeight+pad*2, this.fillColor);
+
+        // Window region
+        var rollPos = page.$music.position();
+        var pOffset = (pianoRoll ? 100 : 0);
+
+        var xScroll = Math.abs( rollPos.left - pOffset );
+        var yScroll = Math.abs( rollPos.top - 35);
+
+        var w = (page.$sequencer.width() - pOffset)   * viewScale;
+        var h = (page.$sequencer.height() - 35 - 176) * viewScale;
+
+        // Save new rect coordinates
+        this.lastX = xScroll * viewScale;
+        this.lastY = yScroll * viewScale;
+        this.lastWidth  = w;
+        this.lastHeight = h;
+
+        // Draw window
+        coverCanvas.rectangle( this.lastX, this.lastY, this.lastWidth, this.lastHeight, 'blank');
+
+        moveViewFrame();
+    }
+}
+
+/**
+ * Update view frame automatically through the render operation
+ */
+function moveViewFrame() {
+    page.$ViewFrame.css({
+        'width'  : ViewCover.lastWidth + 'px',
+        'height' : ViewCover.lastHeight + 'px',
+        'top'    : ViewCover.lastY + 'px',
+        'left'   : ViewCover.lastX + 'px'
+    });
+}
+
+/**
+ * Handler for dragging the view frame and re-rendering accordingly
+ */
+function viewFrameDragged() {
+    roll.scroll.x = -1 * (page.$ViewFrame.position().left / viewScale);
+    roll.scroll.y = -1 * (page.$ViewFrame.position().top / viewScale);
+
+    scrollMusicTo(
+        roll.scroll.x,
+        roll.scroll.y
+    );
+}
 
 // -----
 // Initialization
@@ -969,6 +1107,46 @@ $(document).ready(function(){
                 if(!!pSound.dispose) pSound.dispose();
             });
         }
+    });
+
+    // Dragging the view frame
+    page.$ViewFrame.on('mousedown', function(e){
+        var mouseX = e.clientX;
+        var mouseY = e.clientY;
+
+        var delta = {x: 0, y:0};
+        var frame = {
+            x: page.$ViewFrame.position().left,
+            y: page.$ViewFrame.position().top
+        };
+
+        page.$body.on('mousemove', function(e){
+            delta.x = e.clientX - mouseX;
+            delta.y = e.clientY - mouseY;
+
+            page.$ViewFrame.css({
+                'top'  : frame.y + delta.y,
+                'left' : frame.x + delta.x
+            });
+
+            if(page.$ViewFrame.position().top < 0) {
+                page.$ViewFrame.css('top', '0px');
+            }
+
+            if(page.$ViewFrame.position().left < 0) {
+                page.$ViewFrame.css('left', '0px');
+            }
+
+            if(page.$ViewFrame.position().top + page.$ViewFrame.height() > 176) {
+                page.$ViewFrame.css('top', 176 - page.$ViewFrame.height() + 'px');
+            }
+
+            viewFrameDragged();
+        });
+
+        page.$body.on('mouseup', function(){
+            page.$body.off('mousemove mouseup');
+        });
     });
 
     // Placing a single note
@@ -1166,6 +1344,9 @@ $(document).ready(function(){
                         if(newTime != note.data.time && newTime >= 0) {
                             note.data.time = newTime;
                             el.css('left', newLeft + 'px');
+
+                            // RENDER ACTION
+                            View.render.all();
                         }
 
                         if(newPitch != note.data.pitch && newPitch >= 0 && newPitch <= 88) {
@@ -1479,6 +1660,8 @@ $(document).ready(function(){
             } else {
                 $('.play-bar').css('left', '0px');
             }
+
+            $('.mini-playbar').css('left', $('.play-bar').position().left * viewScale + 'px');
         });
 
         page.$body.on('mouseup', function(e){

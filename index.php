@@ -38,6 +38,8 @@
                     <!-- Extended view (toggleable) -->
                     <div class="extended">
                         <canvas class="view"></canvas>
+                        <canvas class="cover"></canvas>
+
                         <div class="mini-playbar"></div>
                         <div class="mini-frame"></div>
                     </div>
