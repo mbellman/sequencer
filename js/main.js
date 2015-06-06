@@ -99,9 +99,11 @@ var tools = {
         },
 
         'Save' : function() {
+            saveSequence();
         },
 
         'Open' : function() {
+            $('#open-link').click();
         },
 
         'br' : null,
@@ -186,27 +188,35 @@ var tools = {
 
     Channel : {
         'Channel 1 [1]' : function(){
+            setChannel(1);
         },
 
         'Channel 2 [2]' : function(){
+            setChannel(2);
         },
 
         'Channel 3 [3]' : function(){
+            setChannel(3);
         },
 
         'Channel 4 [4]' : function(){
+            setChannel(4);
         },
 
         'Channel 5 [5]' : function(){
+            setChannel(5);
         },
 
         'Channel 6 [6]' : function(){
+            setChannel(6);
         },
 
         'Channel 7 [7]' : function(){
+            setChannel(7);
         },
 
         'Channel 8 [8]' : function(){
+            setChannel(8);
         },
     },
 
@@ -467,9 +477,11 @@ function putPreviewNote(x, y) {
     return pNote;
 }
 
-function putNote(x, y, width, animate) {
+function putNote(x, y, width, animate, _forceChannel) {
+    var targetChannel = (!!_forceChannel ? _forceChannel : activeChannel);
+
     var note = $('<div/>', {
-        class : 'note channel-' + activeChannel,
+        class : 'note channel-' + targetChannel,
         css   : {
             width : width + 'px',
             top   : (y*30)+5 + 'px',
@@ -477,8 +489,8 @@ function putNote(x, y, width, animate) {
         }
     });
     
-    note.attr('data-channel', activeChannel)
-        .attr('data-note', sequence.channel[activeChannel-1].notes.length);
+    note.attr('data-channel', targetChannel)
+        .attr('data-note', sequence.channel[targetChannel-1].notes.length);
     
     if(!!animate) {
         note.scale(0).css('opacity', '0');
@@ -495,7 +507,7 @@ function putNote(x, y, width, animate) {
     var pitch    = y;
     var duration = Math.ceil( width/30 );
     
-    sequence.channel[activeChannel-1].write(pitch, time, duration);
+    sequence.channel[targetChannel-1].write(pitch, time, duration);
 }
 
 function eraseNote(element) {
@@ -727,6 +739,9 @@ function pasteNotes() {
  
         // Refresh viewable notes
         setTimeout(tagViewableNotes, 250);
+
+        // RENDER ACTION
+        View.render.all();
     }
 }
 
@@ -806,6 +821,23 @@ function jumpToStart() {
     roll.scroll.x = -30*playOffset + margin;
 }
 
+/**
+ * Changes the active sequence track
+ */
+function setChannel(c) {
+    if(activeChannel != c) {
+        activeChannel = c;
+
+        $('.note:not(.channel-' + activeChannel + ')').addClass('inactive-channel');
+        $('.note.channel-' + activeChannel).removeClass('inactive-channel');
+
+        $('.instrument-select').find('option').eq( sequence.channel[c-1].instrument - 1 )[0].selected = true;
+        selectedInstrument = sequence.channel[c-1].instrument;
+
+        setTimeout(tagViewableNotes, 250);
+    }
+}
+
 
 // ------------
 // Canvas tools
@@ -873,7 +905,7 @@ viewCanvas.load( page.$render );
 
 var View = {
     canvas : viewCanvas.canvas,
-    colors : ['#0FF', '#0FF', '#0FF', '#0FF', '#0FF', '#0FF', '#0FF', '#0FF'],
+    colors : ['#0FF', '#FD0', '#F0F', '#0FF', '#0FF', '#0FF', '#0FF', '#0FF'],
     render : {}
 };
 
@@ -1137,8 +1169,8 @@ $(document).ready(function(){
                 page.$ViewFrame.css('left', '0px');
             }
 
-            if(page.$ViewFrame.position().top + page.$ViewFrame.height() > 176) {
-                page.$ViewFrame.css('top', 176 - page.$ViewFrame.height() + 'px');
+            if(page.$ViewFrame.position().top + page.$ViewFrame.height() > (176 - 176*viewScale)) {
+                page.$ViewFrame.css('top', 176 - 176*viewScale - page.$ViewFrame.height() + 'px');
             }
 
             viewFrameDragged();
@@ -1419,18 +1451,22 @@ $(document).ready(function(){
         }
         
         if(!toolbarActive && selectedTool == 2) {
-            // Erasing a single note via click
-            eraseNote($(this));
+            if(activeNote($(this))) {
+                // Erasing a single note via click
+                eraseNote($(this));
 
-            // RENDER ACTION
-            View.render.all();
+                // RENDER ACTION
+                View.render.all();
+            }
         }
         
         if(!toolbarActive && selectedTool == 3 && keys.SHIFT) {
-            // Selecting an individual note via SHIFT-click
-            notesSelected = true;
-            noteAction = true;
-            $(this).addClass('selected');
+            if(activeNote($(this))) {
+                // Selecting an individual note via SHIFT-click
+                notesSelected = true;
+                noteAction = true;
+                $(this).addClass('selected');
+            }
         }
     });
 

@@ -12,6 +12,7 @@
         <script src="js/jquery.min.js"></script>
         <script src="js/jquery.mousewheel.min.js"></script>
         <script src="js/audio.js"></script>
+        <script src="js/file.js"></script>
     </head>
 
     <body>
@@ -20,6 +21,8 @@
 
         <!-- Page content -->
         <main>
+
+            <!-- Main sequencer interface -->
             <div class="sequencer">
                 <div class="content">
                     <!-- Top toolbar -->
@@ -45,6 +48,19 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Pop-up display (additional options and features) -->
+            <div class="modal-space">
+
+                <!-- Load demos -->
+                <div class="demos">
+                </div>
+            </div>
+
+            <!-- Save/Open components (hidden) -->
+            <a download="sequence.txt" id="save-link"></a>
+            <input id="open-link" type="file" />
+
         </main>
 
         <!-- Additional scripts -->

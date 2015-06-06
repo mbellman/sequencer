@@ -11,20 +11,20 @@ var instruments = {
 }
 
 /**
- * Full audio sequence constructor
+ * Full audio sequence constructor & methods
  */
 function Sequence() {
-    this.channel = [];
-    this.tempo = 180;           // In BPM, where four 16th notes constitute a single beat
+    this.channel    = [];
+    this.tempo      = 180;           // In BPM, where four 16th notes constitute a single beat
 
-    this.playing   = false;
+    this.playing    = false;
 
     this.build      = build;
     this.tempoTime  = tempoTime;
     this.columnTime = columnTime;
     this.play       = play;
     this.pause      = pause;
-    this.restart    = restart;
+    this.serialize  = serialize;
 
     function build() {
         for(var c = 0 ; c < 8 ; c++) {
@@ -95,8 +95,26 @@ function Sequence() {
         WebAudio.close();
     }
 
-    function restart() {
-        
+    function serialize() {
+        var serialData = '';
+
+        for(c in this.channel) {
+            var ch = this.channel[c];
+
+            for(n in ch.notes) {
+                var note = ch.notes[n];
+
+                if(!note.disposed) {
+                    var nData = [note.pitch, note.time, note.duration];
+
+                    serialData += nData.join('-') + '|';
+                }
+            }
+
+            serialData += '+';
+        }
+
+        return serialData;
     }
 }
 
