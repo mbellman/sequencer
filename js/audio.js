@@ -96,6 +96,14 @@ function Sequence() {
     }
 
     function serialize() {
+        // Building header
+        var headerData = this.tempo + '/';
+
+        for(c in this.channel) {
+            headerData += this.channel[c].instrument + '*';
+        }
+
+        // Building sequence data
         var serialData = '';
 
         for(c in this.channel) {
@@ -114,7 +122,7 @@ function Sequence() {
             serialData += '+';
         }
 
-        return serialData;
+        return headerData + '<>' + serialData;
     }
 }
 

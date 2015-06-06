@@ -36,6 +36,8 @@
                     <div class="music">
                         <div class="select-bar"></div>  <!-- Visible only in selection mode -->
                         <div class="play-bar"></div>    <!-- Indicator for start of playback (scrolls with view) -->
+
+                        <div class="measure-grid"></div>
                     </div>
 
                     <!-- Extended view (toggleable) -->

@@ -932,6 +932,14 @@ View.render.all = function() {
             }
         }
     }
+
+    var distance = 0;
+
+    while(distance < viewCanvas.canvas.width) {
+        distance += 480*viewScale;
+
+        viewCanvas.rectangle( distance, 0, 1, 176, '#DDD');
+    }
 }
 
 /* --- Extended view darker overlay (with local view box) --- */
@@ -948,6 +956,8 @@ var ViewCover = {
     lastY      : 0,
     lastWidth  : 0,
     lastHeight : 0,
+
+    offsetX    : 0,
 
     fill : function() {
         coverCanvas.rectangle( 0, 0, page.$render2.width(), page.$render2.height(), this.fillColor );
@@ -1754,8 +1764,10 @@ $(document).ready(function(){
                 
             // Other
             case 8:     // BACKSPACE
-                options.eq(3).click();
-                return false;
+                if(!$('.tempo-form').is(':focus')) {
+                    options.eq(3).click();
+                    return false;
+                }
                 break;
             case 13:    // ENTER
                 options.eq(4).click();

@@ -42,10 +42,19 @@ function loadSequence(seq) {
         sequence = new Sequence();
         sequence.build();
 
-        var channels = seq.split('+');
+        seq = seq.split('<>');
+
+        sequence.tempo = seq[0].split('/')[0];
+        $('.tempo-form').val( sequence.tempo );
+
+        var instruments = seq[0].split('/')[1].split('*');
+        var channels = seq[1].split('+');
+        channels.pop();
 
         for(c in channels) {
             var notes = channels[c].split('|');
+
+            sequence.channel[c].instrument = parseInt(instruments[c]);
 
             if(notes.length > 0) {
                 for(n in notes) {
@@ -63,6 +72,9 @@ function loadSequence(seq) {
                 }
             }
         }
+
+        activeChannel = -1;
+        setChannel(1);
 
         // RENDER ACTION
         View.render.all();
