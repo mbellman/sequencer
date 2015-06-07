@@ -11,6 +11,7 @@
 
         <script src="js/jquery.min.js"></script>
         <script src="js/jquery.mousewheel.min.js"></script>
+        <script src="js/ease.js"></script>
         <script src="js/audio.js"></script>
         <script src="js/file.js"></script>
     </head>

@@ -50,7 +50,7 @@ function handleResize() {
     if(init) {
         updateCorners();
         toolbar.resize();
-        lockScrollBottom();
+        boundScrollArea();
 
         View.canvas.width  = page.$render.width();
         View.canvas.height = page.$render.height();
@@ -776,14 +776,27 @@ function scrollMusicTo(x, y) {
 
 /**
  * Prevent music roll from being
- * scrolled past the bottom edge
+ * scrolled past the top/bottom edges
  */
-function lockScrollBottom() {
-    var limit = -1*(2640 - page.$sequencer.height())-35;
+function boundScrollArea() {
+    var bottomLimit = -1*(2640 - page.$sequencer.height())-35;
 
-    if(roll.scroll.y <= limit) {
-        page.$piano.css('top', limit+35);
-        page.$music.css('top', limit+35);
+    if(roll.scroll.y <= bottomLimit) {
+        page.$piano.css('top', bottomLimit+35);
+        page.$music.css('top', bottomLimit+35);
+
+        roll.scroll.y = bottomLimit;
+
+        ViewCover.render();
+    }
+
+    if(roll.scroll.y > 0) {
+        page.$piano.css('top', 35);
+        page.$music.css('top', 35);
+
+        roll.scroll.y = 0;
+
+        ViewCover.render();
     }
 }
 
@@ -804,7 +817,7 @@ function focusPlayOffset() {
         $('.play-bar').css('left', '0px');
     }
 
-    $('.mini-playbar').css('left', $('.play-bar').position().left * viewScale + 'px');
+    $('.mini-playbar').css('left', (playOffset*2 + View.offsetX) + 'px');
 }
 
 /**
@@ -904,10 +917,13 @@ var viewCanvas = new Canvas();
 viewCanvas.load( page.$render );
 
 var View = {
-    canvas : viewCanvas.canvas,
-    colors : ['#0FF', '#FD0', '#F0F', '#0FF', '#0FF', '#0FF', '#0FF', '#0FF'],
-    render : {},
-    scroll : {}
+    canvas    : viewCanvas.canvas,
+    colors    : ['#0FF', '#FD0', '#F0F', '#0FF', '#0FF', '#0FF', '#0FF', '#0FF'],
+
+    scrolling : false,
+    offsetX   : 0,
+
+    render    : {}
 };
 
 View.render.note = function(x, y, length, channel) {
@@ -925,7 +941,7 @@ View.render.all = function() {
 
             if(!note.disposed) {
                 View.render.note(
-                    note.time     * 2,
+                    note.time     * 2 + View.offsetX,
                     note.pitch    * 2,
                     note.duration * 2,
                     c
@@ -934,7 +950,7 @@ View.render.all = function() {
         }
     }
 
-    var distance = 0;
+    var distance = 0 + View.offsetX % (480*viewScale);
 
     while(distance < viewCanvas.canvas.width) {
         distance += 480*viewScale;
@@ -958,8 +974,6 @@ var ViewCover = {
     lastWidth  : 0,
     lastHeight : 0,
 
-    offsetX    : 0,
-
     fill : function() {
         coverCanvas.rectangle( 0, 0, page.$render2.width(), page.$render2.height(), this.fillColor );
     },
@@ -980,7 +994,7 @@ var ViewCover = {
         var h = (page.$sequencer.height() - 35 - 176) * viewScale;
 
         // Save new rect coordinates
-        this.lastX = xScroll * viewScale;
+        this.lastX = xScroll * viewScale + View.offsetX;
         this.lastY = yScroll * viewScale;
         this.lastWidth  = w;
         this.lastHeight = h;
@@ -1017,14 +1031,58 @@ function viewFrameDragged() {
     );
 }
 
-function scrollViewTo(destX) {
-    View.offsetX = destX;
+function setViewTo(x) {
+    View.offsetX = x;
 
-    checkViewEdge();
+    View.render.all();
+    ViewCover.render();
+
+    $('.mini-playbar').css('left', (playOffset*2 + x) + 'px');
+}
+
+function scrollViewTo(destX) {
+    if(destX == View.offsetX || View.scrolling) {
+        // No need to scroll to the same spot
+        return;
+    }
+
+    if(destX > 0) {
+        destX = 0;
+    }
+
+    View.scrolling = true;
+
+    var start      = View.offsetX;
+
+    var time       = 1000;
+    var dt         = 50;
+
+    var posDestX   = Math.abs(destX);
+    var posStart   = Math.abs(start);
+    var xDelta     = Math.max(posDestX, posStart) - Math.min(posDestX, posStart);
+
+    var sign       = (start > destX ? -1 : 1);
+
+    var i = 0;
+    var t = 0;
+
+    while(++i <= time/dt) {
+        setTimeout(function(){
+            ++t;
+            setViewTo( start + (Ease.quad.out(t / (time/dt)) * xDelta * sign) );
+
+            if(t >= time/dt) {
+                setViewTo(destX);
+                checkViewEdge();
+
+                View.scrolling = false;
+            }
+        }, i*dt);
+    }
 }
 
 function checkViewEdge() {
-    if(View.offsetX <= 0) {
+    if(View.offsetX == 0) {
         $('.extended .scroll.left').addClass('disabled');
     } else {
         $('.extended .scroll.left').removeClass('disabled');
@@ -1053,12 +1111,14 @@ var mouseDrag = false, dragTimer = null;
 var noteAction = false, noteActionTimer = null;
 var noteGrab = false, grabTimer = null;
 var playDrag = false, playDragTimer = null;
+var viewClick = false, viewClickTimer = null;
 var erasing = false;
 
 function resetMouseDrag()  { mouseDrag = false; }
 function resetNoteAction() { noteAction = false;}
 function resetNoteGrab()   { noteGrab = false; }
 function resetPlayDrag()   { playDrag = false; }
+function resetViewClick()  { viewClick = false; }
 
 $(document).ready(function(){
 
@@ -1168,7 +1228,7 @@ $(document).ready(function(){
 
     // Dragging the view frame
     page.$ViewFrame.on('mousedown', function(e){
-        var mouseX = e.clientX;
+        var mouseX = e.clientX + View.offsetX;
         var mouseY = e.clientY;
 
         var delta = {x: 0, y:0};
@@ -1204,6 +1264,38 @@ $(document).ready(function(){
         page.$body.on('mouseup', function(){
             page.$body.off('mousemove mouseup');
         });
+    });
+
+    // Double-clicking a spot on the extended view to scroll there
+    $('canvas.cover').click(function(e){
+        if(viewClick) {
+            // Double click!
+            var pointX = e.clientX - $('.mini-frame').width()/2 - page.$render.offset().left;
+            var pointY = e.clientY - $('.mini-frame').height()/2 - page.$render.offset().top;
+
+            var newX = (-1*(pointX - View.offsetX)) / viewScale;
+            var newY = (-1*pointY) / viewScale;
+
+            scrollMusicTo(newX, newY);
+            roll.scroll.x = newX;
+            roll.scroll.y = newY;
+
+            boundScrollArea();
+        }
+
+        viewClick = true;
+
+        clearTimeout(viewClickTimer);
+        viewClickTimer = setTimeout(resetViewClick, 250);
+    });
+
+    // Extended view scroll buttons
+    $('.scroll.left, .scroll.left .arrow').click(function(){
+        scrollViewTo(View.offsetX + 400);
+    });
+
+    $('.scroll.right, .scroll.right .arrow').click(function(){
+        scrollViewTo(View.offsetX - 400);
     });
 
     // Placing a single note
@@ -1725,7 +1817,7 @@ $(document).ready(function(){
                 $('.play-bar').css('left', '0px');
             }
 
-            $('.mini-playbar').css('left', $('.play-bar').position().left * viewScale + 'px');
+            $('.mini-playbar').css('left', ($('.play-bar').position().left * viewScale + View.offsetX) + 'px');
         });
 
         page.$body.on('mouseup', function(e){
@@ -1836,6 +1928,7 @@ $(document).ready(function(){
 
     // Setting extended view position (along x)
     scrollViewTo(0);
+    checkViewEdge();
 
     // Create new sequence data
     generateSequence();
