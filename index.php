@@ -47,6 +47,14 @@
 
                         <div class="mini-playbar"></div>
                         <div class="mini-frame"></div>
+
+                        <div class="scroll left">
+                            <div class="arrow"></div>
+                        </div>
+
+                        <div class="scroll right">
+                            <div class="arrow"></div>
+                        </div>
                     </div>
                 </div>
             </div>

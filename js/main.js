@@ -906,7 +906,8 @@ viewCanvas.load( page.$render );
 var View = {
     canvas : viewCanvas.canvas,
     colors : ['#0FF', '#FD0', '#F0F', '#0FF', '#0FF', '#0FF', '#0FF', '#0FF'],
-    render : {}
+    render : {},
+    scroll : {}
 };
 
 View.render.note = function(x, y, length, channel) {
@@ -1014,6 +1015,20 @@ function viewFrameDragged() {
         roll.scroll.x,
         roll.scroll.y
     );
+}
+
+function scrollViewTo(destX) {
+    View.offsetX = destX;
+
+    checkViewEdge();
+}
+
+function checkViewEdge() {
+    if(View.offsetX <= 0) {
+        $('.extended .scroll.left').addClass('disabled');
+    } else {
+        $('.extended .scroll.left').removeClass('disabled');
+    }
 }
 
 // -----
@@ -1818,6 +1833,9 @@ $(document).ready(function(){
     // Set music roll starting position (C5 at top)
     scrollMusicTo(0, -24*30);
     roll.scroll.y = -24*30;
+
+    // Setting extended view position (along x)
+    scrollViewTo(0);
 
     // Create new sequence data
     generateSequence();

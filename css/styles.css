@@ -293,6 +293,70 @@ main .sequencer .content .extended .mini-playbar {
     background: #0C0;
 }
 
+main .sequencer .content .extended .scroll {
+    position: absolute;
+    width: 62px;
+    height: 100%;
+    background-repeat: no-repeat;
+    cursor: pointer;
+    opacity: 0;
+
+    -ms-transition: opacity 0.25s;
+    -o-transition: opacity 0.25s;
+    -moz-transition: opacity 0.25s;
+    -webkit-transition: opacity 0.25s;
+    transition: opacity 0.25s;
+}
+
+main .sequencer .content .extended .scroll.disabled {
+    display: none;
+}
+
+main .sequencer .content .extended .scroll:not(.disabled):hover {
+    opacity: 1;
+}
+
+main .sequencer .content .extended .scroll.left {
+    background-image: url(../images/left-gradient.png);
+}
+
+main .sequencer .content .extended .scroll.right {
+    right: 0;
+    background-image: url(../images/right-gradient.png);
+}
+
+main .sequencer .content .extended .scroll .arrow {
+    position: absolute;
+    width: 15px;
+    height: 27px;
+    top: 74px;
+    background-repeat: no-repeat;
+
+    -ms-transition: left 0.5s, right 0.5s;
+    -o-transition: left 0.5s, right 0.5s;
+    -moz-transition: left 0.5s, right 0.5s;
+    -webkit-transition: left 0.5s, right 0.5s;
+    transition: left 0.5s, right 0.5s;
+}
+
+main .sequencer .content .extended .scroll.left .arrow {
+    left: 20px;
+    background-image: url(../images/left-arrow.png);
+}
+
+main .sequencer .content .extended .scroll.left:hover .arrow {
+    left: 10px;
+}
+
+main .sequencer .content .extended .scroll.right .arrow {
+    right: 20px;
+    background-image: url(../images/right-arrow.png);
+}
+
+main .sequencer .content .extended .scroll.right:hover .arrow {
+    right: 10px;
+}
+
 main .sequencer .content .music {
     position: absolute;
     top: 35px;
