@@ -1289,6 +1289,31 @@ $(document).ready(function(){
         viewClickTimer = setTimeout(resetViewClick, 250);
     });
 
+    $('canvas.cover').on('mousedown', function(e){
+        var mouseX = e.clientX;
+        var initialX = View.offsetX;
+
+        page.$body.on('mousemove', function(e){
+            var deltaX = e.clientX - mouseX;
+
+            if(initialX + deltaX <= 0) {
+                View.offsetX = initialX + deltaX;
+                setViewTo(View.offsetX);
+            } else {
+                mouseX += (initialX + deltaX);
+
+                View.offsetX = 0;
+                setViewTo(0);
+            }
+
+            checkViewEdge();
+        });
+
+        page.$body.on('mouseup', function(){
+            page.$body.off('mousemove mouseup');
+        });
+    });
+
     // Extended view scroll buttons
     $('.scroll.left, .scroll.left .arrow').click(function(){
         scrollViewTo(View.offsetX + 400);
