@@ -35,10 +35,8 @@ function loadSequence(seq) {
         // Clear music roll
         $('.note').remove();
 
-        // Reset existing sequence
-        sequence.channel.length = 0;
-
         // Rebuild sequence data structure
+        sequence = null;
         sequence = new Sequence();
         sequence.build();
 
@@ -88,15 +86,17 @@ $(document).ready(function(){
     $('#open-link').on('change', function(){
         var file = $(this)[0].files[0];
 
-        if(file.type == 'text/plain') {
-            // Loading a regular plaintext file
-            var fileReader = new FileReader();
-            fileReader.onload = function(f) {
-                loadSequence(f.target.result);
+        if(typeof file != 'undefined') {
+            if(file.type == 'text/plain') {
+                // Loading a regular plaintext file
+                var fileReader = new FileReader();
+                fileReader.onload = function(f) {
+                    loadSequence(f.target.result);
+                }
+                fileReader.readAsText(file);
+            } else {
+                // Loading an invalid non-plaintext file
             }
-            fileReader.readAsText(file);
-        } else {
-            // Loading an invalid non-plaintext file
         }
     });
 });
