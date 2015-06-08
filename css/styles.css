@@ -297,7 +297,7 @@ main .sequencer .content .extended .mini-playback-bar {
 main .sequencer .content .extended .mini-playback-bar {
     display: none;
     width: 2px;
-    background: #FBA;
+    background: #FA0;
 }
 
 main .sequencer .content .extended .scroll {

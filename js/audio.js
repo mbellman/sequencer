@@ -101,7 +101,10 @@ function Sequence() {
             }
         }
 
-        $('.mini-playback-bar').css('display', 'block');
+        $('.mini-playback-bar').css({
+            'display' : 'block',
+            'left'    : (playOffset*2 + View.offsetX) + 'px'
+        });
 
         // Only way to preserve scope information...
         (function(s){
