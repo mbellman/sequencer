@@ -794,26 +794,35 @@ function scrollMusicTo(x, y) {
 }
 
 /**
- * Prevent music roll from being
- * scrolled past the top/bottom edges
+ * Prevent music roll from being scrolled
+ * past the top/bottom/left edges
  */
 function boundScrollArea() {
     var bottomLimit = -1*(2640 - page.$sequencer.height())-35;
 
     if(roll.scroll.y <= bottomLimit) {
-        page.$piano.css('top', bottomLimit+35);
-        page.$music.css('top', bottomLimit+35);
+        page.$piano.css('top', bottomLimit+35 + 'px');
+        page.$music.css('top', bottomLimit+35 + 'px');
 
         roll.scroll.y = bottomLimit;
 
         ViewCover.render();
+        $('.measure-labels').css('top', -roll.scroll.y + 'px');
     }
 
     if(roll.scroll.y > 0) {
-        page.$piano.css('top', 35);
-        page.$music.css('top', 35);
+        page.$piano.css('top', 35 + 'px');
+        page.$music.css('top', 35 + 'px');
 
         roll.scroll.y = 0;
+
+        ViewCover.render();
+        $('.measure-labels').css('top', -roll.scroll.y + 'px');
+    }
+
+    if(roll.scroll.x > 0) {
+        page.$music.css('left', '0px');
+        roll.scroll.x = 0;
 
         ViewCover.render();
     }
