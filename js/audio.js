@@ -14,14 +14,17 @@ var instruments = {
  * Full audio sequence constructor & methods
  */
 function Sequence() {
-    this.channel    = [];
-    this.tempo      = 180;           // In BPM, where four 16th notes constitute a single beat
+    this.channel      = [];
+    this.tempo        = 180;         // In BPM, where four 16th notes constitute a single beat
+    this.progInterval = null;        // Playback progress position check interval
 
+    this.startTime  = 0;
     this.playing    = false;
 
     this.build      = build;
     this.tempoTime  = tempoTime;
     this.columnTime = columnTime;
+    this.progress   = progress;
     this.play       = play;
     this.pause      = pause;
     this.serialize  = serialize;
@@ -43,14 +46,24 @@ function Sequence() {
         return time/this.tempoTime(1);
     }
 
+    function progress() {
+        if(this.playing) {
+            var progressDist = (this.columnTime( WebAudio.context.currentTime - this.startTime ) * 30);
+            $('.mini-playback-bar').css('left', ((progressDist * viewScale) + playOffset*2 + View.offsetX) + 'px');
+            return;
+        }
+
+        $('.mini-playback-bar').css('display', 'none');
+    }
+
     function play() {
         if(this.playing) {
             return;
         }
 
         this.playing  = true;
-        
-        var startTime = WebAudio.context.currentTime;
+
+        this.startTime= WebAudio.context.currentTime;
         var lastTime  = 0;
 
         var lastNote;           // Keep track of farthest notes based on [lastTime]
@@ -66,9 +79,10 @@ function Sequence() {
                 if(!note.disposed && note.time >= playOffset) {
                     var oscillator = new Oscillator(
                         frequency(88-note.pitch),
-                        this.tempoTime(note.time - playOffset) + startTime + 0.1,
-                        this.tempoTime(note.time + note.duration - playOffset) + startTime + 0.1
+                        this.tempoTime(note.time - playOffset) + this.startTime + 0.1,
+                        this.tempoTime(note.time + note.duration - playOffset) + this.startTime + 0.1
                     );
+
                     oscillator.plays(instruments[channel.instrument]).connect();
 
                     if(lastTime < note.time + note.duration) {
@@ -86,9 +100,21 @@ function Sequence() {
                 lastNote.bindEnd();
             }
         }
+
+        $('.mini-playback-bar').css('display', 'block');
+
+        // Only way to preserve scope information...
+        (function(s){
+            s.progInterval = setInterval(function(){
+                s.progress();
+            }, 50);
+        })(this);
     }
 
     function pause() {
+        clearInterval(this.progInterval);
+        $('.mini-playback-bar').css('display', 'none');
+
         this.playing   = false;
         this.startTime = 0;
 

@@ -48,6 +48,7 @@
                         <canvas class="cover"></canvas>
 
                         <div class="mini-playbar"></div>
+                        <div class="mini-playback-bar"></div>
                         <div class="mini-frame"></div>
 
                         <div class="scroll left">

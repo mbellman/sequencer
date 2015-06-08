@@ -284,13 +284,20 @@ main .sequencer .content .extended .mini-frame {
     cursor: all-scroll;
 }
 
-main .sequencer .content .extended .mini-playbar {
+main .sequencer .content .extended .mini-playbar,
+main .sequencer .content .extended .mini-playback-bar {
     position: absolute;
     width: 1px;
     height: 176px;
     top: 0;
     left: 0;
     background: #0C0;
+}
+
+main .sequencer .content .extended .mini-playback-bar {
+    display: none;
+    width: 2px;
+    background: #FBA;
 }
 
 main .sequencer .content .extended .scroll {
@@ -474,6 +481,7 @@ main .sequencer .content .music .measure-labels {
     width: 100%;
     height: 10px;
     top: 0;
+    z-index: 4;
     pointer-events: none;
 }
 
