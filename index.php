@@ -39,6 +39,7 @@
                         <div class="play-bar"></div>    <!-- Indicator for start of playback (scrolls with view) -->
 
                         <div class="measure-grid"></div>
+                        <div class="measure-labels"></div>
                     </div>
 
                     <!-- Extended view (toggleable) -->

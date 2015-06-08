@@ -410,6 +410,22 @@ function generateUI() {
         
         page.$piano.append(key);
     }
+
+    // Placing measure labels
+    var m = 1;
+    var mOffset = 482;
+
+    while(mOffset <= page.$music.width()) {
+        var label = $('<div/>', {
+            class : 'label',
+            css : {
+                'left' : mOffset + 'px'
+            }
+        }).text(m).appendTo( $('.measure-labels') );
+
+        mOffset += 480;
+        m++;
+    }
 }
 
 function resetNavDrops() {
@@ -671,7 +687,7 @@ function shiftGroupXY(deltaX, deltaY) {
         var grabbedData = getNoteData(grabbedNote);
         var gPitch = grabbedData.pitch;
 
-        if( Math.abs(deltaY) >= 1) {
+        if( Math.abs(deltaY) >= 1 ) {
             WebAudio.tone(frequency(88-gPitch), false);
         }
     }
@@ -772,6 +788,9 @@ function scrollMusicTo(x, y) {
 
     // Update extended view local area position
     ViewCover.render();
+
+    // Keep measure labels stuck to top
+    $('.measure-labels').css('top', -y + 'px');
 }
 
 /**
@@ -1042,7 +1061,8 @@ function setViewTo(x) {
 
 function scrollViewTo(destX) {
     if(destX == View.offsetX || View.scrolling) {
-        // No need to scroll to the same spot
+        // No need to scroll to the same spot;
+        // also cancels new action if still moving
         return;
     }
 
@@ -1161,6 +1181,7 @@ $(document).ready(function(){
     // Editing tempo value
     $(document).on('keydown', '.tempo-form', function(e){
         if(!(e.which >= 48 && e.which <= 57) && (e.which != 37 && e.which != 39) && (e.which != 8)) {
+            // Only permit numbers, LR arrow keys and backspace
             return false;
         }
     }).on('keyup', '.tempo-form', function(){

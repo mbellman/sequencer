@@ -469,6 +469,19 @@ main .sequencer .content .music .measure-grid {
     pointer-events: none;
 }
 
+main .sequencer .content .music .measure-labels {
+    position: absolute;
+    width: 100%;
+    height: 10px;
+    top: 0;
+    pointer-events: none;
+}
+
+main .sequencer .content .music .measure-labels .label {
+    position: absolute;
+    font: 10px Arial;
+}
+
 /* Modal styles */
 main .modal-space {
     display: none;
