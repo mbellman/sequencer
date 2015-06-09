@@ -48,6 +48,10 @@ function Sequence() {
 
     function progress() {
         if(this.playing) {
+            if(!$('.mini-playback-bar').is(':visible')) {
+                $('.mini-playback-bar').css('display', 'block');
+            }
+
             var progressDist = (this.columnTime( WebAudio.context.currentTime - this.startTime ) * 30);
             $('.mini-playback-bar').css('left', ((progressDist * viewScale) + playOffset*2 + View.offsetX) + 'px');
             return;
