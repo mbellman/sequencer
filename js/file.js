@@ -36,6 +36,7 @@ function loadSequence(seq) {
         $('.note').remove();
 
         // Rebuild sequence data structure
+        clearInterval(sequence.progInterval);
         sequence = null;
         sequence = new Sequence();
         sequence.build();
