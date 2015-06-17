@@ -1,6 +1,23 @@
 // -- System utilities -- //
+var startPlayOffset = 0;
+
 function unixTime() {
     return new Date().getTime();
+}
+
+function playProgress() {
+    if(sequence.playing) {
+        if(!page.$MiniPlay.is(':visible')) {
+            page.$MiniPlay.css('display', 'block');
+        }
+
+        var progressDist = sequence.columnTime( WebAudio.context.currentTime - sequence.startTime ) * 30;
+        page.$MiniPlay.css('left', ((progressDist * viewScale) + startPlayOffset*2 + View.offsetX) + 'px');
+
+        return;
+    }
+
+    page.$MiniPlay.css('display', 'none');
 }
 
 // -- Sound data structure -- //
@@ -24,7 +41,6 @@ function Sequence() {
     this.build      = build;
     this.tempoTime  = tempoTime;
     this.columnTime = columnTime;
-    this.progress   = progress;
     this.play       = play;
     this.pause      = pause;
     this.serialize  = serialize;
@@ -46,30 +62,17 @@ function Sequence() {
         return time/this.tempoTime(1);
     }
 
-    function progress() {
-        if(this.playing) {
-            if(!$('.mini-playback-bar').is(':visible')) {
-                $('.mini-playback-bar').css('display', 'block');
-            }
-
-            var progressDist = (this.columnTime( WebAudio.context.currentTime - this.startTime ) * 30);
-            $('.mini-playback-bar').css('left', ((progressDist * viewScale) + playOffset*2 + View.offsetX) + 'px');
-            return;
-        }
-
-        $('.mini-playback-bar').css('display', 'none');
-    }
-
     function play() {
         if(this.playing) {
             return;
         }
 
-        this.playing  = true;
+        startPlayOffset = playOffset;
 
-        this.startTime= WebAudio.context.currentTime;
-        var lastTime  = 0;
+        this.playing   = true;
+        this.startTime = WebAudio.context.currentTime;
 
+        var lastTime   = 0;
         var lastNote;           // Keep track of farthest notes based on [lastTime]
 
         for(c in this.channel) {
@@ -105,22 +108,19 @@ function Sequence() {
             }
         }
 
-        $('.mini-playback-bar').css({
+        // Set playback bar up
+        page.$MiniPlay.css({
             'display' : 'block',
-            'left'    : (playOffset*2 + View.offsetX) + 'px'
+            'left'    : (startPlayOffset*2 + View.offsetX) + 'px'
         });
 
-        // Only way to preserve scope information...
-        (function(s){
-            s.progInterval = setInterval(function(){
-                s.progress();
-            }, 50);
-        })(this);
+        clearInterval(this.progInterval);
+        this.progInterval = setInterval(playProgress, 50);
     }
 
     function pause() {
         clearInterval(this.progInterval);
-        $('.mini-playback-bar').css('display', 'none');
+        page.$MiniPlay.css('display', 'none');
 
         this.playing   = false;
         this.startTime = 0;

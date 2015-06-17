@@ -12,6 +12,7 @@ var page = {
     $render    : $('canvas.view'),
     $render2   : $('canvas.cover'),
     $ViewFrame : $('.mini-frame'),
+    $MiniPlay  : $('.mini-playback-bar'),
     $music     : $('.music')
 }
 
@@ -178,6 +179,7 @@ var tools = {
         'Start from beginning [ENTER]' : function(){
             roll.scroll.x = 0;
             scrollMusicTo(0, roll.scroll.y);
+            setViewTo(0, false);
             focusPlayOffset();
         },
 
@@ -868,6 +870,10 @@ function jumpToStart() {
 function setChannel(c) {
     if(activeChannel != c) {
         activeChannel = c;
+
+        notesSelected = false;
+        noteAction = false;
+        $('.note').removeClass('selected');
 
         $('.note:not(.channel-' + activeChannel + ')').addClass('inactive-channel');
         $('.note.channel-' + activeChannel).removeClass('inactive-channel');
@@ -1635,9 +1641,21 @@ $(document).ready(function(){
         if(!toolbarActive && selectedTool == 3 && keys.SHIFT) {
             if(activeNote($(this))) {
                 // Selecting an individual note via SHIFT-click
-                notesSelected = true;
-                noteAction = true;
-                $(this).addClass('selected');
+                if(!$(this).hasClass('selected')) {
+                    // Adding note to selection group
+                    notesSelected = true;
+                    noteAction = true;
+                    $(this).addClass('selected');
+                } else {
+                    // Removing note from selection group
+                    $(this).removeClass('selected');
+
+                    if($('.note.selected').length == 0) {
+                        // Unselected last note, so update variables
+                        notesSelected = false;
+                        noteAction = false;
+                    }
+                }
             }
         }
     });
