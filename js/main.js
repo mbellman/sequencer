@@ -14,7 +14,7 @@ var page = {
     $ViewFrame : $('.mini-frame'),
     $MiniPlay  : $('.mini-playback-bar'),
     $music     : $('.music')
-}
+};
 
 var sequence;
 
@@ -126,7 +126,9 @@ var tools = {
 
         'br2' : null,
 
-        'Demos' : function() {
+        'Visualizer' : function() {
+            $('.overlay').addClass('top');
+            resetNavDrops();
         },
     },
 
@@ -886,64 +888,6 @@ function setChannel(c) {
 }
 
 
-// ------------
-// Canvas tools
-
-/**
- * Canvas object constructor
- */
-function Canvas() {
-    this.canvas;
-    this.context;
-}
-
-/**
- * Set up the canvas DOM element and context
- * via a canvas jQuery selector
- */
-Canvas.prototype.load = function(_jQueryCanvas) {
-    this.canvas  = _jQueryCanvas[0];
-    this.context = this.canvas.getContext('2d');
-}
-
-/**
- * Clear the canvas
- */
-Canvas.prototype.clear = function() {
-    if(this.context != null) {
-        this.context.clearRect(
-            0,
-            0,
-            this.canvas.width,
-            this.canvas.height
-        );
-    }
-}
-
-/**
- * Draw a rectangle on the canvas
- */
-Canvas.prototype.rectangle = function(_x, _y, _width, _height, _color) {
-    if(this.context != null) {
-        if(_color != 'blank') {
-            // Drawing a normal box with a color fill
-            this.context.beginPath();
-            this.context.rect(_x, _y, _width, _height);
-            this.context.fillStyle = _color;
-            this.context.fill();
-        } else {
-            // Clearing an area defined by the region
-            this.context.clearRect(
-                _x,
-                _y,
-                _width,
-                _height
-            );
-        }
-    }
-}
-
-
 /* --- Extended view --- */
 var viewScale = 1/15;
 
@@ -1135,7 +1079,7 @@ function startAudioContext() {
     if(WebAudio.context == null) {
         WebAudio.init();
         WebAudio.addNode('gainNode', WebAudio.context.createGain());
-        WebAudio.nodes.gainNode.gain.value = 1/3;
+        WebAudio.nodes.gainNode.gain.value = 1/5;
     }
 }
 // -----
@@ -1985,8 +1929,10 @@ $(document).ready(function(){
     });
     
     $(document).on('mousewheel', function(e){
-        roll.scroll.x += e.deltaX*10;
-        roll.scroll.y += e.deltaY*10;
+        var factor = (!!navigator.userAgent.match('Windows') ? 100 : 10);
+
+        roll.scroll.x += e.deltaX*factor;
+        roll.scroll.y += e.deltaY*factor;
 
         if(roll.scroll.x > 0) roll.scroll.x = 0;
         if(roll.scroll.y > 0) roll.scroll.y = 0;

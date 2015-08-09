@@ -490,26 +490,54 @@ main .sequencer .content .music .measure-labels .label {
     font: 10px Arial;
 }
 
-/* Modal styles */
-main .modal-space {
-    display: none;
+/* Visualizer styles */
+main .overlay {
     position: absolute;
     width: 100%;
     height: 100%;
-    background-color: rgba(0,0,0,0.2);
-    z-index: 5;
+    background-color: rgba(0,0,0,0.8);
+    opacity: 0;
+    z-index: -1;
+
+    -ms-transition: opacity 0.4s;
+    -o-transition: opacity 0.4s;
+    -moz-transition: opacity 0.4s;
+    -webkit-transition: opacity 0.4s;
+    transition: opacity 0.4s;
 }
 
-main .modal-space .demos {
+main .overlay.top {
+    opacity: 1;
+    z-index: 10;
+}
+
+main .animation {
     position: absolute;
-    width: 50%;
-    padding-bottom: 35%;
+    width: 80%;
+    padding-bottom: 36%;
     top: 50%;
     left: 50%;
-    margin: -18% 0 0 -25%;
-    outline: 4px solid #FFF;
-    border: 1px solid #CCC;
-    background: #CFF;
+    margin: -18% 0 0 -40%;
+    box-shadow: 0 0 10px 0 #0FF;
+    border: 2px solid #0FF;
+    background: #FFF;
+}
+
+main .animation .options {
+    position: absolute;
+    width: 20%;
+    top: 2%;
+    left: 2%;
+    bottom: 2%;
+    border: 1px solid #000;
+}
+
+main .animation .visualizer {
+    position: absolute;
+    width: 75%;
+    top: 2%;
+    right: 2%;
+    bottom: 2%;
 }
 
 /* Additional stuff */

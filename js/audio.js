@@ -354,6 +354,7 @@ function Oscillator(_pitch, _startTime, _endTime) {
     function create() {
         if(!!WebAudio.context) {
             this.object = WebAudio.context.createOscillator();
+
             this.object.type = this.wave;
             this.object.frequency.value = this.pitch;
 
@@ -373,8 +374,8 @@ function Oscillator(_pitch, _startTime, _endTime) {
     
     function connect() {
         this.object.connect(WebAudio.nodes.gainNode);
-
         this.object.start(this.startTime);
+        
         if(this.endTime != null) {
             this.object.stop(this.endTime);
         }

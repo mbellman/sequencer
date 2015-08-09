@@ -14,6 +14,7 @@
         <script src="js/ease.js"></script>
         <script src="js/audio.js"></script>
         <script src="js/file.js"></script>
+        <script src="js/canvas.js"></script>
     </head>
 
     <body>
@@ -62,11 +63,14 @@
                 </div>
             </div>
 
-            <!-- Pop-up display (additional options and features) -->
-            <div class="modal-space">
+            <!-- Animation visualizer -->
+            <div class="overlay">
+                <div class="animation">
+                    <div class="options">
 
-                <!-- Load demos -->
-                <div class="demos">
+                    </div>
+
+                    <canvas class="visualizer"></canvas>
                 </div>
             </div>
 
@@ -77,6 +81,7 @@
         </main>
 
         <!-- Additional scripts -->
+        <script src="js/visualizer.js"></script>
         <script src="js/main.js"></script>
     </body>
 </html>
