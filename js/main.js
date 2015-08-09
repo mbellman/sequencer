@@ -1439,7 +1439,14 @@ $(document).ready(function(){
 
         noteAction = false;
     });
-    
+
+    // Erasing a note with right-click
+    $(document).on('contextmenu', '.music .note', function(e){
+        eraseNote($(this));
+        e.preventDefault();
+        return false;
+    });
+
     // Note manipulation
     $(document).on('mousedown', '.music .note', function(e){
         if(!toolbarActive && noteAction && (selectedTool == 1 || (selectedTool == 3 && groupStretch))) {
