@@ -61,9 +61,9 @@ function loadSequence(seq) {
                         var noteData = notes[n].split('-');
 
                         putNote(
-                            parseInt(noteData[1]),
+                            parseFloat(noteData[1]),
                             parseInt(noteData[0]),
-                            parseInt(noteData[2])*30,
+                            parseFloat(noteData[2])*30,
                             false,
                             (parseInt(c)+1)
                         );

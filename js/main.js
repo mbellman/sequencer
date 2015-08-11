@@ -24,6 +24,7 @@ var selectedInstrument = 1;
 
 var pianoRoll = true;           // Viewing piano roll
 var extendedView = true;        // Viewing extended view
+var noteSnapping = true;        // All note placements/movements/stretching snap to the nearest 16th note
 
 var pianoPreview = false;       // Set to true on piano key mousedown so rollovers will play new tones (false on mouseup)
 
@@ -40,7 +41,7 @@ var playOffset = 0;             // Offset from which to start playing
 var keys = {
     SHIFT : false,
     CTRL  : false
-}
+};
 
 // ---------------------------------------
 // -------------- Handlers ---------------
@@ -253,7 +254,9 @@ var tools = {
             }
         },
 
-        'Measure Breaks' : function() {
+        'Note Snapping' : function() {
+            noteSnapping = !noteSnapping;
+            resetNavDrops();
         }
     }
 }
@@ -525,7 +528,7 @@ function putNote(x, y, width, animate, _forceChannel) {
     
     var time     = x;
     var pitch    = y;
-    var duration = Math.ceil( width/30 );
+    var duration = width/30;
     
     sequence.channel[targetChannel-1].write(pitch, time, duration);
 }
@@ -748,6 +751,8 @@ function pasteNotes() {
             for(var n = 0, totalCopies = roll.clipboard.length ; n < totalCopies ; n++) {
                 var copy = roll.clipboard[n];
 
+                console.log(copy.duration);
+
                 putNote(
                     copy.time + startX,
                     copy.pitch,
@@ -770,6 +775,8 @@ function pasteNotes() {
  */
 function deleteNotes() {
     if(selectedTool == 3 && $('.note.selected').length > 0) {
+        copyNotes();
+
         $('.note.selected').each(function(){
             $(this).removeClass('selected');
             eraseNote($(this));
@@ -1443,6 +1450,10 @@ $(document).ready(function(){
     // Erasing a note with right-click
     $(document).on('contextmenu', '.music .note', function(e){
         eraseNote($(this));
+
+        // RENDER ACTION
+        View.render.all();
+
         e.preventDefault();
         return false;
     });
@@ -1461,6 +1472,7 @@ $(document).ready(function(){
             var note = {
                 x    : el.offset().left,
                 y    : el.offset().top,
+                rX   : el.position().left,
                 w    : el.width(),
                 data : getNoteData(el)
             };
@@ -1497,9 +1509,15 @@ $(document).ready(function(){
                         var tile = getTile(e.clientX, e.clientY);
 
                         var newTop  = 5 + tile.y*30;
-                        var newLeft = (tile.x-xTileDiff)*30;
 
-                        var newTime  = Math.floor(newLeft/30);
+                        if(noteSnapping) {
+                            var newLeft = (tile.x-xTileDiff)*30;
+                            var newTime = Math.floor(newLeft/30);
+                        } else {
+                            var newLeft = note.rX + delta.x;
+                            var newTime = newLeft/30;
+                        }
+
                         var newPitch = Math.floor(newTop/30);
 
                         if(newTime != note.data.time && newTime >= 0) {
@@ -1522,12 +1540,24 @@ $(document).ready(function(){
 
                     case 'stretch': // Changing the note's length
 
+                        var lowerBound = (noteSnapping ? 1 : 0.2);
+
                         if(selectedTool == 1) {
                             // Only stretching one note
-                            var newLength   = note.w + Math.round(delta.x/30)*30;
-                            var newDuration = Math.round(newLength/30);
+                            if(noteSnapping) {
+                                var newLength   = note.w + Math.round(delta.x/30)*30;
+                                var newDuration = Math.round(newLength/30);
 
-                            if(newDuration != note.data.duration && newDuration >= 1) {
+                                var tEnd = Math.round(note.data.time + newDuration);
+
+                                newLength = 30 * (tEnd - note.data.time);
+                                newDuration = newLength/30;
+                            } else {
+                                var newLength   = note.w + delta.x;
+                                var newDuration = newLength/30;
+                            }
+
+                            if(newDuration != note.data.duration && newDuration >= lowerBound) {
                                 note.data.duration = newDuration;
                                 el.width(newLength + 'px');
 
@@ -1538,15 +1568,20 @@ $(document).ready(function(){
 
                         if(selectedTool == 3) {
                             // Stretching a group of notes
-                            var stretchLength = Math.round(delta.x/30)*30;
-                            var stretchDuration = Math.round(stretchLength/30);
+                            var stretchLength = delta.x;
+                            var stretchDuration = stretchLength/30;
+
+                            if(noteSnapping) {
+                                stretchLength = Math.round(stretchLength);
+                                stretchDuration = Math.round(stretchDuration);
+                            }
 
                             $('.note.selected').each(function(){
                                 var sNote = $(this);
                                 var sNoteData = getNoteData(sNote);
                                 var newDuration = sNoteData.duration + stretchDuration;
 
-                                if(newDuration >= 1) {
+                                if(newDuration >= lowerBound) {
                                     sNote.width(newDuration*30 + 'px');
                                 }
                             });
@@ -1567,7 +1602,11 @@ $(document).ready(function(){
                         var el = $(this);
                         var sNoteData = getNoteData(el);
 
-                        sNoteData.duration = Math.round(el.width()/30);
+                        if(noteSnapping) {
+                            sNoteData.duration = Math.round(el.width()/30);
+                        } else {
+                            sNoteData.duration = el.width()/30;
+                        }
                     });
 
                     groupStretch = false;
@@ -1630,10 +1669,17 @@ $(document).ready(function(){
         var delta = {x: 0, y: 0};
 
         var tile = getTile(mouseX, mouseY);
+        var spawnX;
 
         switch(selectedTool) {
             case 1:     // Placing a new note
-                var pNote  = putPreviewNote(tile.x, tile.y);
+                if(noteSnapping) {
+                    spawnX = tile.x;
+                } else {
+                    spawnX = (e.clientX - $('.music').offset().left) / 30;
+                }
+
+                var pNote  = putPreviewNote(spawnX, tile.y);
                 var pSound = WebAudio.tone(frequency(88-tile.y), true);
                 break;
             case 2:     // Erasing notes
@@ -1680,7 +1726,11 @@ $(document).ready(function(){
             // Drag actions
             switch(selectedTool) {
                 case 1:     // Previewing an elongated new note
-                    pNote.css('width', 30+(30*(newTile.x - tile.x)) + 'px');
+                    if(noteSnapping) {
+                        pNote.css('width', 30+(30*(newTile.x - tile.x)) + 'px');
+                    } else {
+                        pNote.css('width', Math.max(6, delta.x));
+                    }
                     break;
                 case 2:     // Erasing any notes covered by the mouse (handled separately)
                     break;
@@ -1715,11 +1765,17 @@ $(document).ready(function(){
                         selectNotes(selectRange);
                     } else {
                         // Dragging a group of selected notes
-                        var newTile = getTile(nMouseX, nMouseY);
-                        
-                        if(newTile.x != updateTile.x) {
-                            shiftGroupXY(newTile.x - updateTile.x, 0);
-                            updateTile.x = newTile.x;
+
+                        if(noteSnapping) {
+                            var newTile = getTile(nMouseX, nMouseY);
+                            
+                            if(newTile.x != updateTile.x) {
+                                shiftGroupXY(newTile.x - updateTile.x, 0);
+                                updateTile.x = newTile.x;
+                            }
+                        } else {
+                            mouseX = nMouseX;
+                            shiftGroupXY(delta.x/30, 0);
                         }
                         
                         if(newTile.y != updateTile.y) {
@@ -1762,7 +1818,9 @@ $(document).ready(function(){
             if(selectedTool == 1) {
                 // Removing preview note/stopping preview sound
                 pNote.remove();
-                if(!!pSound.dispose) pSound.dispose();
+                if(typeof pSound.dispose == 'function') {
+                    pSound.dispose();
+                }
             } else
             if(selectedTool == 2) {
                 // Stopping erasure
@@ -1780,7 +1838,6 @@ $(document).ready(function(){
             if(!mouseDrag) {
                 // Mouse was not dragged after being held, so the
                 // action will be processed by the click handler
-                // (only really applies 
                 return;
             }
 
@@ -1792,13 +1849,20 @@ $(document).ready(function(){
             // Release actions (erasure is omitted since it triggers no new action)
             switch(selectedTool) {
                 case 1:     // Placing an elongated new note
-                    if(finalTile.x >= tile.x) {
-                        putNote(tile.x, tile.y, 30+(30*(finalTile.x - tile.x)), true);
-                        setTimeout(tagViewableNotes, 250);
-
-                        // RENDER ACTION
-                        View.render.all();
+                    if(noteSnapping) {
+                        if(finalTile.x >= tile.x) {
+                            putNote(tile.x, tile.y, 30+(30*(finalTile.x - tile.x)), true);
+                        }
+                    } else {
+                        if(delta.x >= 6) {
+                            putNote(spawnX, tile.y, delta.x, true);
+                        }
                     }
+
+                    setTimeout(tagViewableNotes, 250);
+
+                    // RENDER ACTION
+                    View.render.all();
                     break;
                 case 3:     // Selecting notes (group all selected)
                     break;
@@ -1920,6 +1984,16 @@ $(document).ready(function(){
                 break;
             case 88:    // X
                 deleteNotes();
+                break;
+
+            case 49:    // 1
+                setChannel(1);
+                break;
+            case 50:    // 2
+                setChannel(2);
+                break;
+            case 51:    // 3
+                setChannel(3);
                 break;
         }
     });
